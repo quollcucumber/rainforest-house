@@ -10,7 +10,7 @@ about the state of the house after their stay. The caretaker accounts can manage
 - **Booking** — pick arrival/departure dates and guest count; overlapping dates and past dates are
   rejected.
 - **Three week limit** — a stay longer than 21 nights pops up:
-  `To make a booking over 3 weeks, please contact arainforest@greatcactus.org or vgreatcactus.org`
+  `To make a booking over 3 weeks, please contact arainforest@greatcactus.org or vrainforest@greatcactus.org`
   and the booking cannot be submitted.
 - **Caretaker accounts** — `rainforest@greatcactus.org`, `vrainforest@greatcactus.org` and
   `arainforest@greatcactus.org` may book any length of stay and can edit, cancel, reinstate or
