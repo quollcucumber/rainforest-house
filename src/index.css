@@ -1,14 +1,22 @@
 :root {
-  --ink: #16241d;
-  --ink-soft: #5c7268;
-  --leaf: #1f6b4a;
-  --leaf-dark: #123d2b;
-  --leaf-light: #e7f3ec;
-  --line: #dbe6de;
+  --ink: #10231a;
+  --ink-soft: #56736a;
+  --leaf: #1c6b48;
+  --leaf-deep: #0d3a27;
+  --leaf-darkest: #07231a;
+  --leaf-bright: #38a06b;
+  --leaf-light: #e4f1e8;
+  --leaf-tint: #f4faf6;
+  --amber: #b3781f;
+  --line: #d9e7de;
   --paper: #ffffff;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  line-height: 1.55;
+  --radius: 18px;
+  --shadow-sm: 0 1px 2px rgba(10, 45, 30, 0.05), 0 8px 20px rgba(10, 45, 30, 0.05);
+  --shadow-lg: 0 24px 60px rgba(7, 35, 26, 0.18);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -18,12 +26,23 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(1200px 600px at 12% -8%, #dcecdf, transparent),
-    linear-gradient(180deg, #f3f8f4, #eaf1eb);
+  background-color: #eef5f0;
+  background-image: radial-gradient(900px 520px at 85% -10%, #d6ead9, transparent),
+    radial-gradient(700px 500px at -10% 15%, #dfeee2, transparent),
+    linear-gradient(180deg, #f2f8f3 0%, #e7f0e9 100%);
+  background-attachment: fixed;
 }
 
 h1,
 h2,
 h3 {
-  letter-spacing: -0.01em;
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+::selection {
+  background: var(--leaf-bright);
+  color: #fff;
 }

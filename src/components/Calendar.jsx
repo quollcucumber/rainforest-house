@@ -36,17 +36,17 @@ export default function Calendar({ bookings, uid }) {
   }
 
   return (
-    <section className="card calendar">
+    <section className="card on-leaf calendar" id="calendar">
       <div className="calendar-head">
         <h2>Who is in the house</h2>
         <div className="calendar-nav">
-          <button type="button" className="ghost" onClick={() => shift(-1)} aria-label="Previous month">
+          <button type="button" onClick={() => shift(-1)} aria-label="Previous month">
             ←
           </button>
-          <strong>
+          <span>
             {MONTHS[month]} {year}
-          </strong>
-          <button type="button" className="ghost" onClick={() => shift(1)} aria-label="Next month">
+          </span>
+          <button type="button" onClick={() => shift(1)} aria-label="Next month">
             →
           </button>
         </div>
