@@ -235,6 +235,11 @@ a.button.quiet:hover {
   margin-top: 16px;
 }
 
+.gallery h3 {
+  margin: 22px 0 0;
+  font-size: 1.05rem;
+}
+
 .gallery-grid figure {
   margin: 0;
   border-radius: 14px;
