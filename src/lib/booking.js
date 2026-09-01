@@ -79,6 +79,29 @@ export function namesByNight(bookings) {
   return names
 }
 
+// Each day is split in two: a booking holds the second half of every night it has, and the first
+// half of the morning after — so arrival and departure days are only half occupied.
+export function occupancyByDay(bookings) {
+  const days = new Map()
+
+  function claim(date, half, booking) {
+    const day = days.get(date) ?? { am: null, pm: null }
+    day[half] = { uid: booking.uid ?? null, name: booking.guestName ?? '' }
+    days.set(date, day)
+  }
+
+  bookings
+    .filter((booking) => booking.status !== 'cancelled')
+    .forEach((booking) => {
+      nightsOf(booking).forEach((date) => {
+        claim(date, 'pm', booking)
+        claim(addDays(date, 1), 'am', booking)
+      })
+    })
+
+  return days
+}
+
 export function monthGrid(year, month) {
   const first = new Date(Date.UTC(year, month, 1))
   const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()

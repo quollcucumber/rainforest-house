@@ -664,6 +664,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .calendar-day {
+  position: relative;
   aspect-ratio: 1 / 1;
   display: flex;
   flex-direction: column;
@@ -675,6 +676,37 @@ button.danger:hover:not(:disabled) {
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
+}
+
+.calendar-day .day-number,
+.calendar-day .day-name {
+  position: relative;
+  z-index: 1;
+}
+
+.calendar-day.booked .day-number,
+.calendar-day.booked .day-name {
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.55);
+}
+
+/* A booking holds the second half of each of its nights and the first half of the morning after,
+   so arrival and departure days are drawn as triangles. */
+.calendar-day .fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #5cc48b, #2f9663);
+}
+
+.calendar-day .fill.mine {
+  background: linear-gradient(180deg, #e8bd5f, #d4a13c);
+}
+
+.calendar-day .fill.am {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.calendar-day .fill.pm {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 .day-name {
@@ -695,14 +727,13 @@ button.danger:hover:not(:disabled) {
 }
 
 .calendar-day.booked {
-  background: linear-gradient(180deg, #5cc48b, #2f9663);
+  background: rgba(255, 255, 255, 0.09);
   border: 1px solid #5cc48b;
   color: #04261a;
   font-weight: 600;
 }
 
 .calendar-day.mine {
-  background: linear-gradient(180deg, #e8bd5f, #d4a13c);
   border-color: #e8bd5f;
   color: #3a2705;
 }
@@ -769,6 +800,11 @@ label.check input[type='checkbox'] {
 
 .swatch.mine {
   background: linear-gradient(180deg, #e8bd5f, #d4a13c);
+}
+
+.swatch.changeover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 50%, #2f9663 50%);
+  border: 1px solid #5cc48b;
 }
 
 /* ---------- responsive ---------- */

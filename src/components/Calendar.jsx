@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { bookedNights, monthGrid, namesByNight, today } from '../lib/booking'
+import { monthGrid, occupancyByDay, today } from '../lib/booking'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = [
@@ -17,17 +17,57 @@ const MONTHS = [
   'December',
 ]
 
+function label(date, day) {
+  if (!day) return `${date} — free`
+  const am = day.am
+  const pm = day.pm
+  if (am && pm && am.name === pm.name) return `${date} — ${pm.name || 'booked'}`
+  const parts = [
+    am ? `until the morning: ${am.name || 'booked'}` : 'free until the afternoon',
+    pm ? `from the afternoon: ${pm.name || 'booked'}` : 'free from the morning',
+  ]
+  return `${date} — ${parts.join(', ')}`
+}
+
+function Day({ date, day, uid }) {
+  const am = day?.am ?? null
+  const pm = day?.pm ?? null
+  const whole = am && pm && am.uid === pm.uid
+  const name = pm?.name || am?.name || ''
+  const isMine = (half) => Boolean(uid) && half?.uid === uid
+
+  return (
+    <div
+      className={[
+        'calendar-day',
+        am || pm ? 'booked' : 'free',
+        isMine(am) || isMine(pm) ? 'mine' : '',
+        date === today() ? 'is-today' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      title={label(date, day)}
+    >
+      {whole ? (
+        <span className={`fill whole${isMine(am) ? ' mine' : ''}`} />
+      ) : (
+        <>
+          {am && <span className={`fill am${isMine(am) ? ' mine' : ''}`} />}
+          {pm && <span className={`fill pm${isMine(pm) ? ' mine' : ''}`} />}
+        </>
+      )}
+      <span className="day-number">{Number(date.slice(8, 10))}</span>
+      {name && <span className="day-name">{name}</span>}
+    </div>
+  )
+}
+
 export default function Calendar({ bookings, uid }) {
   const now = new Date()
   const [year, setYear] = useState(now.getUTCFullYear())
   const [month, setMonth] = useState(now.getUTCMonth())
 
-  const taken = useMemo(() => bookedNights(bookings), [bookings])
-  const mine = useMemo(
-    () => bookedNights(bookings.filter((booking) => booking.uid && booking.uid === uid)),
-    [bookings, uid],
-  )
-  const names = useMemo(() => namesByNight(bookings), [bookings])
+  const occupancy = useMemo(() => occupancyByDay(bookings), [bookings])
   const cells = useMemo(() => monthGrid(year, month), [year, month])
 
   function shift(months) {
@@ -52,7 +92,11 @@ export default function Calendar({ bookings, uid }) {
           </button>
         </div>
       </div>
-      <p className="muted">Booked nights are shaded, with the name of whoever has the house.</p>
+      <p className="muted">
+        Booked nights are shaded, with the name of whoever has the house. Half-shaded days are
+        changeover days: guests arrive in the afternoon and leave in the morning, so half of the day is
+        still free.
+      </p>
 
       <div className="calendar-grid" role="grid">
         {WEEKDAYS.map((day) => (
@@ -62,21 +106,7 @@ export default function Calendar({ bookings, uid }) {
         ))}
         {cells.map((date, index) =>
           date ? (
-            <div
-              key={date}
-              className={[
-                'calendar-day',
-                taken.has(date) ? 'booked' : 'free',
-                mine.has(date) ? 'mine' : '',
-                date === today() ? 'is-today' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              title={taken.has(date) ? `${date} — ${names.get(date) ?? 'booked'}` : `${date} — free`}
-            >
-              <span className="day-number">{Number(date.slice(8, 10))}</span>
-              {names.has(date) && <span className="day-name">{names.get(date)}</span>}
-            </div>
+            <Day key={date} date={date} day={occupancy.get(date)} uid={uid} />
           ) : (
             <div key={`blank-${index}`} className="calendar-day blank" />
           ),
@@ -89,6 +119,9 @@ export default function Calendar({ bookings, uid }) {
         </li>
         <li>
           <span className="swatch booked" /> booked
+        </li>
+        <li>
+          <span className="swatch changeover" /> arrival or departure day
         </li>
         {uid && (
           <li>
