@@ -88,9 +88,32 @@ function Gallery() {
           />
         </figure>
       </div>
+      <h3>The cassowaries</h3>
+      <div className="gallery-grid">
+        <figure>
+          <img
+            src="/images/cassowary-looking-at-camera.jpg"
+            alt="An adult male southern cassowary looking straight at the camera in a Cow Bay garden"
+          />
+        </figure>
+        <figure>
+          <img
+            src="/images/cassowary-preening.jpg"
+            alt="A southern cassowary preening its chest feathers after feeding"
+          />
+        </figure>
+        <figure>
+          <img
+            src="/images/cassowary-neck.jpg"
+            alt="The blue and red neck of a southern cassowary in bright light"
+          />
+        </figure>
+      </div>
       <p className="credit">
-        Photographs of the Daintree rainforest, far north Queensland — public domain (CC0) via Wikimedia
-        Commons. They show the surrounding rainforest, not the house itself.
+        Rainforest photographs: Daintree, far north Queensland — public domain (CC0) via Wikimedia
+        Commons. Cassowary photographs:{' '}
+        <a href="https://swampythings.wordpress.com/tag/cassowary/">Wild Wings &amp; Swampy Things</a>,
+        Cow Bay. None of them show the house itself.
       </p>
     </section>
   )

@@ -49,8 +49,17 @@ Queensland, from Wikimedia Commons — cropped and re-compressed for the web:
 | `rainforest-creek.jpg` | [Daintree Rainforest 2](https://commons.wikimedia.org/wiki/File:Daintree_Rainforest_2.jpg) by Killerscene |
 | `rainforest-understorey.jpg` | [Daintree Rainforest 3](https://commons.wikimedia.org/wiki/File:Daintree_Rainforest_3.jpg) by Killerscene |
 
-They show the surrounding rainforest, not the house — the page says so. Replace them with photographs
-of the house whenever there are some.
+Three cassowary photographs come from the Wild Wings & Swampy Things blog, taken at Cow Bay, and are
+credited to it on the page:
+
+| file | source |
+| --- | --- |
+| `cassowary-looking-at-camera.jpg` | [Cassowary catch up](https://swampythings.wordpress.com/2023/10/08/cassowary-catch-up/) |
+| `cassowary-preening.jpg` | [Cassowary catch up](https://swampythings.wordpress.com/2023/10/08/cassowary-catch-up/) |
+| `cassowary-neck.jpg` | [Cassowary catch up](https://swampythings.wordpress.com/2023/10/08/cassowary-catch-up/) |
+
+They show the surrounding rainforest and its wildlife, not the house — the page says so. Replace them
+with photographs of the house whenever there are some.
 
 ## Local development
 
