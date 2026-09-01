@@ -67,10 +67,7 @@ function Footer() {
     <footer className="site-footer">
       <div className="site-footer-inner">
         <span>Cow Bay airstrip nursery house</span>
-        <span>
-          Stays longer than 3 weeks: <a href="mailto:arainforest@greatcactus.org">arainforest@greatcactus.org</a>{' '}
-          or <a href="mailto:vrainforest@greatcactus.org">vrainforest@greatcactus.org</a>
-        </span>
+        <span>Stays longer than 3 weeks are arranged with the caretakers.</span>
       </div>
     </footer>
   )

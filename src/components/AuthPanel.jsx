@@ -51,8 +51,7 @@ export default function AuthPanel() {
       <h2>{mode === 'signup' ? 'Create an account' : mode === 'reset' ? 'Reset password' : 'Sign in'}</h2>
       <p className="muted">
         An account lets you book the house, change your own booking and leave a comment. Your address
-        has to be confirmed by email, and allowed by a caretaker — ask{' '}
-        <a href="mailto:arainforest@greatcactus.org">arainforest@greatcactus.org</a> if you are not sure.
+        has to be confirmed by email, and allowed by a caretaker — ask a caretaker if you are not sure.
       </p>
       <form onSubmit={handleSubmit}>
         {mode === 'signup' && (
