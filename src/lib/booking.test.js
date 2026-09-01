@@ -11,6 +11,7 @@ import {
   namesByNight,
   nightsBetween,
   nightsOf,
+  occupancyByDay,
   overlaps,
   validateBooking,
 } from './booking.js'
@@ -161,6 +162,40 @@ test('namesByNight names each occupied night and skips cancelled stays', () => {
   assert.equal(names.get('2026-01-02'), 'Ada')
   assert.equal(names.get('2026-01-03'), 'Bo')
   assert.equal(names.has('2026-02-01'), false)
+})
+
+test('occupancyByDay half-fills arrival and departure days', () => {
+  const days = occupancyByDay([
+    {
+      uid: 'u1',
+      guestName: 'Ada',
+      startDate: '2026-01-01',
+      endDate: '2026-01-03',
+      status: 'confirmed',
+    },
+    {
+      uid: 'u2',
+      guestName: 'Bo',
+      startDate: '2026-01-03',
+      endDate: '2026-01-04',
+      status: 'confirmed',
+    },
+    { uid: 'u3', guestName: 'Cy', startDate: '2026-02-01', endDate: '2026-02-02', status: 'cancelled' },
+  ])
+
+  // Arrival afternoon only, then a whole night, then a changeover shared by both stays.
+  assert.deepEqual(days.get('2026-01-01'), { am: null, pm: { uid: 'u1', name: 'Ada' } })
+  assert.deepEqual(days.get('2026-01-02'), {
+    am: { uid: 'u1', name: 'Ada' },
+    pm: { uid: 'u1', name: 'Ada' },
+  })
+  assert.deepEqual(days.get('2026-01-03'), {
+    am: { uid: 'u1', name: 'Ada' },
+    pm: { uid: 'u2', name: 'Bo' },
+  })
+  // Departure morning only.
+  assert.deepEqual(days.get('2026-01-04'), { am: { uid: 'u2', name: 'Bo' }, pm: null })
+  assert.equal(days.has('2026-02-01'), false)
 })
 
 test('monthGrid pads to the weekday the month starts on', () => {
