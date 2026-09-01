@@ -1,7 +1,5 @@
 import {
-  addDoc,
   collection,
-  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
@@ -13,9 +11,8 @@ import {
 import { db } from '../firebase'
 import { nightsBetween, nightsOf } from './booking'
 
-// Dates and the booking name live in `bookings` (world readable, so the calendar works without an
-// account); email addresses and notes live in `bookingDetails`, readable only by the guest and the
-// caretakers.
+// Dates and the booking name live in `bookings`, readable by anyone with an account; email addresses
+// and notes live in `bookingDetails`, readable only by the guest and the caretakers.
 function publicFields(form) {
   return {
     guestName: form.guestName,
@@ -53,6 +50,22 @@ export function subscribeToBookingDetails(user, isAdmin, onChange, onError) {
         byBooking[d.id] = d.data()
       })
       onChange(byBooking)
+    },
+    onError,
+  )
+}
+
+export function subscribeToCommentDetails(user, isAdmin, onChange, onError) {
+  const details = collection(db, 'commentDetails')
+  const q = isAdmin ? query(details) : query(details, where('uid', '==', user.uid))
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const byComment = {}
+      snapshot.docs.forEach((d) => {
+        byComment[d.id] = d.data()
+      })
+      onChange(byComment)
     },
     onError,
   )
@@ -155,18 +168,31 @@ export function deleteBooking(booking) {
   return batch.commit()
 }
 
+// Comments show a name, never an email address: the address goes in `commentDetails`, which only
+// the commenter and the caretakers can read.
+export function displayNameFor(user) {
+  return user.displayName?.trim() || user.email.split('@')[0]
+}
+
 export function createComment(user, { bookingId, stayDates, rating, body }) {
-  return addDoc(collection(db, 'comments'), {
+  const commentRef = doc(collection(db, 'comments'))
+  const batch = writeBatch(db)
+  batch.set(commentRef, {
     uid: user.uid,
-    email: user.email,
+    name: displayNameFor(user),
     bookingId: bookingId ?? '',
     stayDates: stayDates ?? '',
     rating: Number(rating),
     body,
     createdAt: serverTimestamp(),
   })
+  batch.set(doc(db, 'commentDetails', commentRef.id), { uid: user.uid, email: user.email })
+  return batch.commit()
 }
 
 export function deleteComment(commentId) {
-  return deleteDoc(doc(db, 'comments', commentId))
+  const batch = writeBatch(db)
+  batch.delete(doc(db, 'comments', commentId))
+  batch.delete(doc(db, 'commentDetails', commentId))
+  return batch.commit()
 }

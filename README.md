@@ -7,9 +7,9 @@ The caretaker accounts can manage every booking.
 ## Behaviour
 
 - **Accounts** — Firebase Auth email/password sign-up, sign-in and password reset.
-- **Public calendar** — anybody, signed in or not, sees which nights are taken. Only dates live in
-  the world-readable `bookings` collection; guest names, email addresses and notes live in
-  `bookingDetails`, readable by the guest and the caretakers only.
+- **Calendar** — needs an account: `bookings` and `nights` are readable only by signed-in users, and
+  hold dates plus the booking name. Email addresses and notes live in `bookingDetails`, readable by
+  the guest and the caretakers only, and shown in the UI to the caretakers.
 - **Booking** — pick arrival/departure dates and guest count; past dates are rejected.
 - **No overlaps** — each booked night is a document in `nights` keyed by the date (`nights/2026-03-01`).
   The rules allow creating one but never overwriting one, so a booking is written in a batch that
@@ -23,7 +23,9 @@ The caretaker accounts can manage every booking.
   `arainforest@greatcactus.org` may book any length of stay and can edit, cancel, reinstate or
   delete anybody's booking.
 - **Comments** — anybody with an account can post a rating and a comment at any time, optionally
-  attached to one of their own bookings. The comment list is readable by everyone.
+  attached to one of their own bookings. The comment list is readable by everyone and shows a name
+  only; the commenter's email address lives in `commentDetails`, readable by that commenter and the
+  caretakers, and shown in the UI to the caretakers.
 
 The 21-night limit, the caretaker permissions and the no-overlap rule are enforced in
 `firestore.rules` as well as in the UI, so they hold even if somebody talks to Firestore directly.

@@ -420,6 +420,11 @@ button.danger:hover:not(:disabled) {
   margin: 6px 0;
 }
 
+.muted a {
+  color: var(--leaf);
+  font-weight: 600;
+}
+
 .error {
   color: #8d2b2b;
   background: #fdf1f1;

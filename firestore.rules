@@ -25,7 +25,7 @@ service cloud.firestore {
       return timestamp.date(int(value[0:4]), int(value[5:7]), int(value[8:10]));
     }
 
-    // Public: dates and the booking name, so the calendar works without an account.
+    // Readable by anyone with an account: dates and the booking name, which is what the calendar shows.
     function bookingShape(data) {
       return data.keys().hasOnly([
           'uid', 'guestName', 'startDate', 'endDate', 'nights', 'guests', 'todo',
@@ -48,7 +48,7 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      allow read: if true;
+      allow read: if signedIn();
 
       allow create: if signedIn()
         && bookingShape(request.resource.data)
@@ -80,7 +80,7 @@ service cloud.firestore {
     // One document per booked night, keyed by the date. Creating a night that already
     // exists is an update, which is never allowed — that is what stops bookings overlapping.
     match /nights/{date} {
-      allow read: if true;
+      allow read: if signedIn();
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['uid', 'bookingId'])
@@ -98,10 +98,11 @@ service cloud.firestore {
       // commenter's own bookings, but does not have to.
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
-             'uid', 'email', 'bookingId', 'stayDates', 'rating', 'body', 'createdAt'
+             'uid', 'name', 'bookingId', 'stayDates', 'rating', 'body', 'createdAt'
            ])
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
         && request.resource.data.body is string
@@ -113,6 +114,19 @@ service cloud.firestore {
           request.resource.data.bookingId == ''
           || get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.uid == request.auth.uid
         );
+
+      allow update: if false;
+      allow delete: if caretaker() || resource.data.uid == request.auth.uid;
+    }
+
+    // A commenter's email address: comments themselves carry only a name.
+    match /commentDetails/{commentId} {
+      allow read: if caretaker() || resource.data.uid == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'email'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
 
       allow update: if false;
       allow delete: if caretaker() || resource.data.uid == request.auth.uid;

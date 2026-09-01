@@ -75,7 +75,7 @@ export default function BookingForm({ user, bookings, booking, onLongStay, onDon
         <label>
           Booking name
           <input required value={form.guestName} onChange={(e) => set('guestName', e.target.value)} />
-          <span className="hint">Shown on the public calendar.</span>
+          <span className="hint">Shown on the calendar to everybody with an account.</span>
         </label>
         <label>
           Guests

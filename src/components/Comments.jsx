@@ -100,7 +100,8 @@ export default function Comments({ user, isAdmin, comments, bookings }) {
           {comments.map((comment) => (
             <li key={comment.id}>
               <div className="comment-head">
-                <strong>{comment.email}</strong>
+                <strong>{comment.name || 'Guest'}</strong>
+                {isAdmin && comment.email && <span className="muted">{comment.email}</span>}
                 <Stars rating={comment.rating} />
                 {comment.stayDates && <span className="muted">stayed {comment.stayDates}</span>}
                 {(isAdmin || comment.uid === user?.uid) && (

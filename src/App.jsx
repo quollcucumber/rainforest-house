@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth, isFirebaseConfigured } from './firebase'
 import { LONG_STAY_MESSAGE, isPrivileged, today } from './lib/booking'
-import { subscribeToBookingDetails, subscribeToBookings, subscribeToComments } from './lib/db'
+import {
+  subscribeToBookingDetails,
+  subscribeToBookings,
+  subscribeToCommentDetails,
+  subscribeToComments,
+} from './lib/db'
 import AuthPanel from './components/AuthPanel'
 import BookingForm from './components/BookingForm'
 import BookingList from './components/BookingList'
@@ -96,7 +101,8 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false)
   const [publicBookings, setPublicBookings] = useState([])
   const [details, setDetails] = useState({})
-  const [comments, setComments] = useState([])
+  const [publicComments, setPublicComments] = useState([])
+  const [commentDetails, setCommentDetails] = useState({})
   const [dataError, setDataError] = useState(null)
   const [showLongStay, setShowLongStay] = useState(false)
 
@@ -111,12 +117,16 @@ export default function App() {
     })
   }, [])
 
-  useEffect(() => {
-    if (!isFirebaseConfigured) return
-    return subscribeToBookings(setPublicBookings, (err) => setDataError(err.message))
-  }, [])
-
   const isAdmin = isPrivileged(user?.email)
+
+  // The calendar needs an account, so bookings are only read once somebody is signed in.
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user) {
+      setPublicBookings([])
+      return
+    }
+    return subscribeToBookings(setPublicBookings, (err) => setDataError(err.message))
+  }, [user])
 
   useEffect(() => {
     if (!isFirebaseConfigured || !user) {
@@ -128,14 +138,28 @@ export default function App() {
 
   useEffect(() => {
     if (!isFirebaseConfigured) return
-    return subscribeToComments(setComments, (err) => setDataError(err.message))
+    return subscribeToComments(setPublicComments, (err) => setDataError(err.message))
   }, [])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user) {
+      setCommentDetails({})
+      return
+    }
+    return subscribeToCommentDetails(user, isAdmin, setCommentDetails, (err) =>
+      setDataError(err.message),
+    )
+  }, [user, isAdmin])
 
   const onLongStay = useCallback(() => setShowLongStay(true), [])
 
   const bookings = useMemo(
     () => publicBookings.map((booking) => ({ ...booking, ...(details[booking.id] ?? {}) })),
     [publicBookings, details],
+  )
+  const comments = useMemo(
+    () => publicComments.map((comment) => ({ ...comment, ...(commentDetails[comment.id] ?? {}) })),
+    [publicComments, commentDetails],
   )
   const myBookings = useMemo(
     () => bookings.filter((booking) => booking.uid === user?.uid),
@@ -175,7 +199,17 @@ export default function App() {
 
         <Gallery />
 
-        <Calendar bookings={publicBookings} uid={user?.uid} />
+        {user ? (
+          <Calendar bookings={publicBookings} uid={user?.uid} />
+        ) : (
+          <section className="card" id="calendar">
+            <h2>Who is in the house</h2>
+            <p className="muted">
+              The calendar is for guests: <a href="#book">create an account or sign in</a> to see who has
+              the house and to book your own dates.
+            </p>
+          </section>
+        )}
 
         {!authReady ? (
           <p className="muted">Loading…</p>
