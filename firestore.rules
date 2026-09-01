@@ -129,7 +129,7 @@ service cloud.firestore {
     }
 
     match /comments/{commentId} {
-      allow read: if true;
+      allow read: if allowed();
 
       // Anyone allowed on the site can comment at any time; a comment may name one of the
       // commenter's own bookings, but does not have to.

@@ -30,8 +30,8 @@ The caretaker accounts can manage every booking.
   `arainforest@greatcactus.org` may book any length of stay and can edit, cancel, reinstate or
   delete anybody's booking.
 - **Comments** — anybody with an allowed account can post a rating and a comment at any time, optionally
-  attached to one of their own bookings. The comment list is readable by everyone and shows a name
-  only; the commenter's email address lives in `commentDetails`, readable by that commenter and the
+  attached to one of their own bookings. The comment list needs an allowed account to read, like the
+  calendar, and shows a name only; the commenter's email address lives in `commentDetails`, readable by that commenter and the
   caretakers, and shown in the UI to the caretakers.
 
 The allowlist, the email confirmation, the 21-night limit, the caretaker permissions and the
