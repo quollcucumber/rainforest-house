@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function caretakerEmails() {
+      return [
+        'rainforest@greatcactus.org',
+        'vrainforest@greatcactus.org',
+        'arainforest@greatcactus.org'
+      ];
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function caretaker() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in caretakerEmails();
+    }
+
+    function asDate(value) {
+      return timestamp.date(int(value[0:4]), int(value[5:7]), int(value[8:10]));
+    }
+
+    function bookingShape(data) {
+      return data.keys().hasOnly([
+          'uid', 'email', 'guestName', 'startDate', 'endDate', 'nights',
+          'guests', 'notes', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.startDate is string && data.startDate.size() == 10
+        && data.endDate is string && data.endDate.size() == 10
+        && data.guestName is string && data.guestName.size() > 0 && data.guestName.size() <= 120
+        && data.notes is string && data.notes.size() <= 2000
+        && data.guests is int && data.guests >= 1 && data.guests <= 8
+        && data.nights is int && data.nights >= 1
+        && data.status in ['confirmed', 'cancelled'];
+    }
+
+    // Stays longer than three weeks may only be created by the caretaker accounts.
+    function lengthAllowed(data) {
+      return asDate(data.endDate) > asDate(data.startDate)
+        && (caretaker() || asDate(data.endDate) - asDate(data.startDate) <= duration.value(21, 'd'));
+    }
+
+    match /bookings/{bookingId} {
+      // Signed-in guests read bookings so the app can show which dates are taken.
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && bookingShape(request.resource.data)
+        && lengthAllowed(request.resource.data)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'confirmed';
+
+      allow update: if (caretaker() || resource.data.uid == request.auth.uid)
+        && bookingShape(request.resource.data)
+        && lengthAllowed(request.resource.data)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email;
+
+      allow delete: if caretaker() || resource.data.uid == request.auth.uid;
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+             'uid', 'email', 'bookingId', 'stayDates', 'rating', 'body', 'createdAt'
+           ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0 && request.resource.data.body.size() <= 4000
+        && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.uid == request.auth.uid;
+
+      allow update: if false;
+      allow delete: if caretaker() || resource.data.uid == request.auth.uid;
+    }
+  }
+}
