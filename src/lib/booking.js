@@ -1,7 +1,7 @@
 export const MAX_NIGHTS_WITHOUT_APPROVAL = 21
 
 export const LONG_STAY_MESSAGE =
-  'To make a booking over 3 weeks, please contact arainforest@greatcactus.org or vgreatcactus.org'
+  'To make a booking over 3 weeks, please contact arainforest@greatcactus.org or vrainforest@greatcactus.org'
 
 export const PRIVILEGED_EMAILS = [
   'rainforest@greatcactus.org',
