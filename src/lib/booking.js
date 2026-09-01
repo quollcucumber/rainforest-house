@@ -13,6 +13,24 @@ export function isPrivileged(email) {
   return Boolean(email) && PRIVILEGED_EMAILS.includes(email.toLowerCase())
 }
 
+// Accounts are only useful if the caretakers have allowed the address itself or its domain.
+export function normaliseEmail(email) {
+  return (email ?? '').trim().toLowerCase()
+}
+
+export function domainOf(email) {
+  const at = normaliseEmail(email).lastIndexOf('@')
+  return at === -1 ? '' : normaliseEmail(email).slice(at + 1)
+}
+
+export function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@.]+\.[^\s@]+$/.test(normaliseEmail(email))
+}
+
+export function isValidDomain(domain) {
+  return /^[^\s@.]+(\.[^\s@.]+)+$/.test(normaliseEmail(domain))
+}
+
 export function nightsBetween(startDate, endDate) {
   if (!startDate || !endDate) return 0
   const start = Date.parse(`${startDate}T00:00:00Z`)

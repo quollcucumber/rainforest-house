@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
@@ -25,6 +27,12 @@ export default function AuthPanel() {
       if (mode === 'signup') {
         const credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
         if (name.trim()) await updateProfile(credential.user, { displayName: name.trim() })
+        await sendEmailVerification(credential.user)
+        await signOut(auth)
+        setMode('signin')
+        setNotice(
+          'Account created. Open the confirmation link we just emailed you, then sign in. A caretaker also has to allow your address or its domain before you can book.',
+        )
       } else if (mode === 'reset') {
         await sendPasswordResetEmail(auth, email.trim())
         setNotice('Password reset email sent.')
@@ -42,7 +50,9 @@ export default function AuthPanel() {
     <section className="card auth" id="book">
       <h2>{mode === 'signup' ? 'Create an account' : mode === 'reset' ? 'Reset password' : 'Sign in'}</h2>
       <p className="muted">
-        An account lets you book the house, change your own booking and leave a comment.
+        An account lets you book the house, change your own booking and leave a comment. Your address
+        has to be confirmed by email, and allowed by a caretaker — ask{' '}
+        <a href="mailto:arainforest@greatcactus.org">arainforest@greatcactus.org</a> if you are not sure.
       </p>
       <form onSubmit={handleSubmit}>
         {mode === 'signup' && (

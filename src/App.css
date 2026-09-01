@@ -420,6 +420,39 @@ button.danger:hover:not(:disabled) {
   margin: 6px 0;
 }
 
+.allowlist-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.allowlist-form label {
+  flex: 1 1 260px;
+}
+
+.allowlist {
+  list-style: none;
+  margin: 6px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.allowlist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--leaf-light);
+}
+
+.allowlist code {
+  font-size: 0.85rem;
+}
+
 .muted a {
   color: var(--leaf);
   font-weight: 600;

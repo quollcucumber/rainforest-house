@@ -3,11 +3,14 @@ import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth, isFirebaseConfigured } from './firebase'
 import { LONG_STAY_MESSAGE, isPrivileged, today } from './lib/booking'
 import {
+  hasAccess,
   subscribeToBookingDetails,
   subscribeToBookings,
   subscribeToCommentDetails,
   subscribeToComments,
 } from './lib/db'
+import AccessGate from './components/AccessGate'
+import AllowlistPanel from './components/AllowlistPanel'
 import AuthPanel from './components/AuthPanel'
 import BookingForm from './components/BookingForm'
 import BookingList from './components/BookingList'
@@ -103,6 +106,7 @@ export default function App() {
   const [details, setDetails] = useState({})
   const [publicComments, setPublicComments] = useState([])
   const [commentDetails, setCommentDetails] = useState({})
+  const [access, setAccess] = useState('none')
   const [dataError, setDataError] = useState(null)
   const [showLongStay, setShowLongStay] = useState(false)
 
@@ -119,22 +123,47 @@ export default function App() {
 
   const isAdmin = isPrivileged(user?.email)
 
-  // The calendar needs an account, so bookings are only read once somebody is signed in.
+  // 'none' → signed out, 'unverified' → email not confirmed, 'denied' → not on the caretakers'
+  // allowlist, 'allowed' → may use the site. Nothing is read from Firestore until 'allowed'.
+  const checkAccess = useCallback(async () => {
+    if (!isFirebaseConfigured || !auth.currentUser) return setAccess('none')
+    const current = auth.currentUser
+    setUser(current)
+    if (isPrivileged(current.email)) return setAccess('allowed')
+    if (!current.emailVerified) return setAccess('unverified')
+    setAccess((await hasAccess(current)) ? 'allowed' : 'denied')
+  }, [])
+
   useEffect(() => {
-    if (!isFirebaseConfigured || !user) {
+    if (!user) {
+      setAccess('none')
+      return
+    }
+    setAccess('checking')
+    checkAccess().catch((err) => {
+      setDataError(err.message)
+      setAccess('denied')
+    })
+  }, [user, checkAccess])
+
+  const allowed = access === 'allowed'
+
+  // The calendar needs an allowed account, so bookings are only read once there is one.
+  useEffect(() => {
+    if (!isFirebaseConfigured || !allowed) {
       setPublicBookings([])
       return
     }
     return subscribeToBookings(setPublicBookings, (err) => setDataError(err.message))
-  }, [user])
+  }, [allowed])
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !user) {
+    if (!isFirebaseConfigured || !allowed) {
       setDetails({})
       return
     }
     return subscribeToBookingDetails(user, isAdmin, setDetails, (err) => setDataError(err.message))
-  }, [user, isAdmin])
+  }, [allowed, user, isAdmin])
 
   useEffect(() => {
     if (!isFirebaseConfigured) return
@@ -142,14 +171,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !user) {
+    if (!isFirebaseConfigured || !allowed) {
       setCommentDetails({})
       return
     }
     return subscribeToCommentDetails(user, isAdmin, setCommentDetails, (err) =>
       setDataError(err.message),
     )
-  }, [user, isAdmin])
+  }, [allowed, user, isAdmin])
 
   const onLongStay = useCallback(() => setShowLongStay(true), [])
 
@@ -199,21 +228,25 @@ export default function App() {
 
         <Gallery />
 
-        {user ? (
+        {allowed ? (
           <Calendar bookings={publicBookings} uid={user?.uid} />
         ) : (
           <section className="card" id="calendar">
             <h2>Who is in the house</h2>
             <p className="muted">
-              The calendar is for guests: <a href="#book">create an account or sign in</a> to see who has
-              the house and to book your own dates.
+              The calendar is for guests: <a href="#book">create an account or sign in</a> with an address
+              the caretakers have allowed to see who has the house and to book your own dates.
             </p>
           </section>
         )}
 
-        {!authReady ? (
+        {!authReady || access === 'checking' ? (
           <p className="muted">Loading…</p>
-        ) : user ? (
+        ) : !user ? (
+          <AuthPanel />
+        ) : !allowed ? (
+          <AccessGate user={user} reason={access} onRecheck={checkAccess} />
+        ) : (
           <>
             <section className="card account">
               <div>
@@ -245,22 +278,28 @@ export default function App() {
             />
 
             {isAdmin && (
-              <BookingList
-                title="All upcoming bookings (caretaker view)"
-                items={upcoming}
-                bookings={bookings}
-                user={user}
-                isAdmin={isAdmin}
-                onLongStay={onLongStay}
-                empty="Nothing booked yet."
-              />
+              <>
+                <BookingList
+                  title="All upcoming bookings (caretaker view)"
+                  items={upcoming}
+                  bookings={bookings}
+                  user={user}
+                  isAdmin={isAdmin}
+                  onLongStay={onLongStay}
+                  empty="Nothing booked yet."
+                />
+                <AllowlistPanel user={user} />
+              </>
             )}
           </>
-        ) : (
-          <AuthPanel />
         )}
 
-        <Comments user={user} isAdmin={isAdmin} comments={comments} bookings={myBookings} />
+        <Comments
+          user={allowed ? user : null}
+          isAdmin={isAdmin}
+          comments={comments}
+          bookings={myBookings}
+        />
 
         {showLongStay && (
           <Modal title="Longer than 3 weeks" onClose={() => setShowLongStay(false)}>
