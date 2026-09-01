@@ -29,6 +29,39 @@ export function overlaps(a, b) {
   return a.startDate < b.endDate && b.startDate < a.endDate
 }
 
+export function addDays(date, days) {
+  const at = new Date(`${date}T00:00:00Z`)
+  at.setUTCDate(at.getUTCDate() + days)
+  return at.toISOString().slice(0, 10)
+}
+
+// The nights a booking occupies: arrival up to, but not including, the departure day.
+export function nightsOf(booking) {
+  const nights = []
+  for (let date = booking.startDate; date < booking.endDate; date = addDays(date, 1)) {
+    nights.push(date)
+  }
+  return nights
+}
+
+export function bookedNights(bookings) {
+  const taken = new Set()
+  bookings
+    .filter((booking) => booking.status !== 'cancelled')
+    .forEach((booking) => nightsOf(booking).forEach((date) => taken.add(date)))
+  return taken
+}
+
+export function monthGrid(year, month) {
+  const first = new Date(Date.UTC(year, month, 1))
+  const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  const blanks = Array.from({ length: first.getUTCDay() }, () => null)
+  const dates = Array.from({ length: days }, (_unused, index) =>
+    new Date(Date.UTC(year, month, index + 1)).toISOString().slice(0, 10),
+  )
+  return [...blanks, ...dates]
+}
+
 export function validateBooking({ startDate, endDate, guests, email, bookings, bookingId }) {
   if (!startDate || !endDate) return 'Pick both an arrival and a departure date.'
 
@@ -36,7 +69,7 @@ export function validateBooking({ startDate, endDate, guests, email, bookings, b
   if (nights < 1) return 'The departure date must be after the arrival date.'
   if (startDate < today()) return 'Arrival date cannot be in the past.'
   if (!guests || guests < 1) return 'At least one guest is required.'
-  if (guests > 8) return 'The house sleeps a maximum of 8 guests.'
+  if (guests > 8) return 'A booking can be for at most 8 guests.'
   if (nights > MAX_NIGHTS_WITHOUT_APPROVAL && !isPrivileged(email)) return LONG_STAY_MESSAGE
 
   const clash = bookings.find(
@@ -48,8 +81,4 @@ export function validateBooking({ startDate, endDate, guests, email, bookings, b
   if (clash) return `Those dates clash with an existing booking (${clash.startDate} → ${clash.endDate}).`
 
   return null
-}
-
-export function stayHasEnded(booking) {
-  return booking.status !== 'cancelled' && booking.endDate <= today()
 }

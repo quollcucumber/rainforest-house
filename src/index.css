@@ -1,8 +1,14 @@
 :root {
+  --ink: #16241d;
+  --ink-soft: #5c7268;
+  --leaf: #1f6b4a;
+  --leaf-dark: #123d2b;
+  --leaf-light: #e7f3ec;
+  --line: #dbe6de;
+  --paper: #ffffff;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.55;
-  color: #16241d;
-  background: #eef4ef;
+  color: var(--ink);
 }
 
 * {
@@ -12,4 +18,12 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background: radial-gradient(1200px 600px at 12% -8%, #dcecdf, transparent),
+    linear-gradient(180deg, #f3f8f4, #eaf1eb);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
 }

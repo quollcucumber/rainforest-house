@@ -6,7 +6,19 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing'
-import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore'
 
 let env
 
@@ -17,15 +29,23 @@ const caretaker = { sub: 'care-1', email: 'arainforest@greatcactus.org', email_v
 function booking(overrides = {}) {
   return {
     uid: 'guest-1',
-    email: 'guest@example.com',
-    guestName: 'Guest One',
     startDate: '2030-03-01',
     endDate: '2030-03-08',
     nights: 7,
     guests: 2,
-    notes: '',
     status: 'confirmed',
     createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
+function details(overrides = {}) {
+  return {
+    uid: 'guest-1',
+    email: 'guest@example.com',
+    guestName: 'Guest One',
+    notes: '',
     updatedAt: new Date(),
     ...overrides,
   }
@@ -42,10 +62,27 @@ after(async () => {
   await env?.cleanup()
 })
 
-test('signed-out visitors cannot read bookings but can read comments', async () => {
+test('signed-out visitors can read the calendar and the comments', async () => {
   const db = env.unauthenticatedContext().firestore()
-  await assertFails(getDocs(collection(db, 'bookings')))
+  await assertSucceeds(getDocs(collection(db, 'bookings')))
+  await assertSucceeds(getDocs(collection(db, 'nights')))
   await assertSucceeds(getDocs(collection(db, 'comments')))
+})
+
+test('names, emails and notes are not public', async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'bookingDetails/d1'), details())
+  })
+  const anon = env.unauthenticatedContext().firestore()
+  const stranger = env.authenticatedContext(other.sub, other).firestore()
+  const owner = env.authenticatedContext(guest.sub, guest).firestore()
+  const admin = env.authenticatedContext(caretaker.sub, caretaker).firestore()
+
+  await assertFails(getDoc(doc(anon, 'bookingDetails/d1')))
+  await assertFails(getDoc(doc(stranger, 'bookingDetails/d1')))
+  await assertSucceeds(getDoc(doc(owner, 'bookingDetails/d1')))
+  await assertSucceeds(getDocs(query(collection(owner, 'bookingDetails'), where('uid', '==', guest.sub))))
+  await assertSucceeds(getDocs(collection(admin, 'bookingDetails')))
 })
 
 test('a guest can create a stay of 21 nights but not 22', async () => {
@@ -65,7 +102,6 @@ test('a caretaker can create a stay of any length', async () => {
       collection(db, 'bookings'),
       booking({
         uid: caretaker.sub,
-        email: caretaker.email,
         startDate: '2031-01-01',
         endDate: '2031-06-01',
         nights: 151,
@@ -77,7 +113,37 @@ test('a caretaker can create a stay of any length', async () => {
 test('a guest cannot book in somebody else’s name', async () => {
   const db = env.authenticatedContext(guest.sub, guest).firestore()
   await assertFails(addDoc(collection(db, 'bookings'), booking({ uid: other.sub })))
-  await assertFails(addDoc(collection(db, 'bookings'), booking({ email: other.email })))
+  await assertFails(
+    setDoc(doc(db, 'bookingDetails/x1'), details({ uid: other.sub, email: other.email })),
+  )
+})
+
+test('a booked night cannot be claimed twice, even by the same guest', async () => {
+  const db = env.authenticatedContext(guest.sub, guest).firestore()
+  const stranger = env.authenticatedContext(other.sub, other).firestore()
+
+  await assertSucceeds(
+    setDoc(doc(db, 'nights/2030-07-01'), { uid: guest.sub, bookingId: 'b-first' }),
+  )
+  await assertFails(
+    setDoc(doc(stranger, 'nights/2030-07-01'), { uid: other.sub, bookingId: 'b-second' }),
+  )
+  await assertFails(setDoc(doc(db, 'nights/2030-07-01'), { uid: guest.sub, bookingId: 'b-third' }))
+
+  // A batch claiming a run of nights fails as a whole if any single night is taken.
+  const batch = writeBatch(stranger)
+  batch.set(doc(stranger, 'nights/2030-06-30'), { uid: other.sub, bookingId: 'b-second' })
+  batch.set(doc(stranger, 'nights/2030-07-01'), { uid: other.sub, bookingId: 'b-second' })
+  await assertFails(batch.commit())
+  const spilled = await getDoc(doc(stranger, 'nights/2030-06-30'))
+  assert.equal(spilled.exists(), false, 'no night from a rejected batch is written')
+
+  // Freeing the night lets somebody else take it.
+  await assertFails(deleteDoc(doc(stranger, 'nights/2030-07-01')))
+  await assertSucceeds(deleteDoc(doc(db, 'nights/2030-07-01')))
+  await assertSucceeds(
+    setDoc(doc(stranger, 'nights/2030-07-01'), { uid: other.sub, bookingId: 'b-second' }),
+  )
 })
 
 test('guests edit and delete only their own booking; caretakers edit anybody’s', async () => {
@@ -106,12 +172,13 @@ test('a guest cannot stretch their own booking past three weeks by editing it', 
   )
 })
 
-test('comments may only be posted against your own booking', async () => {
+test('anybody signed in may comment at any time, about a stay or not', async () => {
   await env.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), 'bookings/b3'), booking())
   })
   const db = env.authenticatedContext(guest.sub, guest).firestore()
   const strangerDb = env.authenticatedContext(other.sub, other).firestore()
+  const anon = env.unauthenticatedContext().firestore()
 
   const comment = {
     uid: guest.sub,
@@ -123,10 +190,23 @@ test('comments may only be posted against your own booking', async () => {
     createdAt: new Date(),
   }
 
+  // An upcoming, unfinished stay can be commented on.
   await assertSucceeds(addDoc(collection(db, 'comments'), comment))
+  // So can no stay at all.
+  await assertSucceeds(
+    addDoc(collection(strangerDb, 'comments'), {
+      ...comment,
+      uid: other.sub,
+      email: other.email,
+      bookingId: '',
+      stayDates: '',
+    }),
+  )
+  // But not somebody else's stay, not anonymously, and not with a bogus rating.
   await assertFails(
     addDoc(collection(strangerDb, 'comments'), { ...comment, uid: other.sub, email: other.email }),
   )
+  await assertFails(addDoc(collection(anon, 'comments'), { ...comment, uid: 'nobody' }))
   await assertFails(addDoc(collection(db, 'comments'), { ...comment, rating: 9 }))
 })
 

@@ -28,7 +28,7 @@ function Row({ booking, user, canManage, bookings, onLongStay }) {
             {booking.guests === 1 ? '' : 's'}
           </span>
           <div className="muted">
-            {canManage ? `${booking.guestName} (${booking.email})` : 'Booked'}
+            {canManage && booking.guestName ? `${booking.guestName} (${booking.email})` : 'Booked'}
             {booking.uid === user.uid ? ' · your booking' : ''}
             {booking.status === 'cancelled' ? ' · cancelled' : ''}
           </div>
@@ -36,19 +36,19 @@ function Row({ booking, user, canManage, bookings, onLongStay }) {
         </div>
         {canManage && (
           <div className="actions">
-            <button type="button" onClick={() => setEditing((v) => !v)}>
+            <button type="button" className="ghost" onClick={() => setEditing((v) => !v)}>
               {editing ? 'Close' : 'Edit'}
             </button>
             {booking.status === 'cancelled' ? (
-              <button type="button" onClick={() => run(() => reinstateBooking(booking.id))}>
+              <button type="button" onClick={() => run(() => reinstateBooking(booking))}>
                 Reinstate
               </button>
             ) : (
-              <button type="button" onClick={() => run(() => cancelBooking(booking.id))}>
+              <button type="button" onClick={() => run(() => cancelBooking(booking))}>
                 Cancel
               </button>
             )}
-            <button type="button" className="danger" onClick={() => run(() => deleteBooking(booking.id))}>
+            <button type="button" className="danger" onClick={() => run(() => deleteBooking(booking))}>
               Delete
             </button>
           </div>

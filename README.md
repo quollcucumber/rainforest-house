@@ -1,25 +1,32 @@
-# Fern Hollow — rainforest nursery house booking site
+# Cow Bay airstrip nursery house — booking site
 
-A small React + Firebase site for booking a house in the rainforest, on a native plant nursery.
-Guests create an account, book their dates, edit or cancel their own booking, and leave a comment
-about the state of the house after their stay. The caretaker accounts can manage every booking.
+A small React + Firebase site for booking the Cow Bay airstrip nursery house. Guests create an
+account, book their dates, edit or cancel their own booking, and comment on the state of the house.
+The caretaker accounts can manage every booking.
 
 ## Behaviour
 
 - **Accounts** — Firebase Auth email/password sign-up, sign-in and password reset.
-- **Booking** — pick arrival/departure dates and guest count; overlapping dates and past dates are
-  rejected.
+- **Public calendar** — anybody, signed in or not, sees which nights are taken. Only dates live in
+  the world-readable `bookings` collection; guest names, email addresses and notes live in
+  `bookingDetails`, readable by the guest and the caretakers only.
+- **Booking** — pick arrival/departure dates and guest count; past dates are rejected.
+- **No overlaps** — each booked night is a document in `nights` keyed by the date (`nights/2026-03-01`).
+  The rules allow creating one but never overwriting one, so a booking is written in a batch that
+  claims every night it needs and fails as a whole if any is held. Two bookings therefore cannot
+  overlap even if two people submit at the same moment. A departure day is not a claimed night, so
+  one guest can leave on the day the next arrives.
 - **Three week limit** — a stay longer than 21 nights pops up:
   `To make a booking over 3 weeks, please contact arainforest@greatcactus.org or vrainforest@greatcactus.org`
   and the booking cannot be submitted.
 - **Caretaker accounts** — `rainforest@greatcactus.org`, `vrainforest@greatcactus.org` and
   `arainforest@greatcactus.org` may book any length of stay and can edit, cancel, reinstate or
   delete anybody's booking.
-- **Comments** — once a stay's departure date has passed, that guest can post a rating and a
-  comment about the condition of the house. The comment list is readable by everyone.
+- **Comments** — anybody with an account can post a rating and a comment at any time, optionally
+  attached to one of their own bookings. The comment list is readable by everyone.
 
-Both the 21-night limit and the caretaker permissions are enforced in `firestore.rules` as well as
-in the UI, so they hold even if somebody talks to Firestore directly.
+The 21-night limit, the caretaker permissions and the no-overlap rule are enforced in
+`firestore.rules` as well as in the UI, so they hold even if somebody talks to Firestore directly.
 
 ## Local development
 

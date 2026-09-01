@@ -1,50 +1,52 @@
 .page {
-  max-width: 880px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 24px 20px 64px;
+  padding: 32px 20px 72px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .hero {
-  background: linear-gradient(160deg, #0f3d2e, #1f6b4a 60%, #2f8f5b);
+  background: linear-gradient(150deg, #0d3627, var(--leaf) 62%, #35a06a);
   color: #f2fbf5;
-  border-radius: 18px;
-  padding: 32px 28px;
-  box-shadow: 0 12px 30px rgba(12, 46, 33, 0.25);
+  border-radius: 22px;
+  padding: 40px 32px;
+  box-shadow: 0 18px 40px rgba(12, 46, 33, 0.22);
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  opacity: 0.8;
 }
 
 .hero h1 {
-  margin: 0 0 8px;
-  font-size: 2.4rem;
-  letter-spacing: 0.5px;
+  margin: 0 0 10px;
+  font-size: clamp(1.9rem, 5vw, 2.7rem);
+  line-height: 1.1;
 }
 
 .hero p {
-  margin: 0 0 16px;
-  max-width: 60ch;
-}
-
-.facts {
   margin: 0;
-  padding-left: 20px;
-  columns: 2;
-  font-size: 0.95rem;
-  opacity: 0.92;
+  max-width: 56ch;
+  opacity: 0.94;
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #dfe8e1;
-  border-radius: 14px;
-  padding: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(18, 61, 43, 0.04), 0 10px 24px rgba(18, 61, 43, 0.05);
 }
 
 .card h2 {
   margin: 0 0 6px;
-  font-size: 1.25rem;
-  color: #14432f;
+  font-size: 1.2rem;
+  color: var(--leaf-dark);
 }
 
 .account {
@@ -137,6 +139,16 @@ button.link {
 button.link:hover {
   background: none;
   color: #14432f;
+}
+
+button.ghost {
+  background: var(--leaf-light);
+  color: var(--leaf-dark);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: #d3e9dc;
+  color: var(--leaf-dark);
 }
 
 button.danger {
@@ -274,8 +286,120 @@ button.danger:hover:not(:disabled) {
   line-height: 1.5;
 }
 
+.calendar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--leaf-dark);
+}
+
+.calendar-nav button {
+  padding: 4px 12px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.calendar-day {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-day.free {
+  background: #f5faf6;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+.calendar-day.booked {
+  background: var(--leaf);
+  border: 1px solid var(--leaf);
+  color: #f2fbf5;
+  font-weight: 600;
+}
+
+.calendar-day.mine {
+  background: #c98a2b;
+  border-color: #c98a2b;
+}
+
+.calendar-day.is-today {
+  outline: 2px solid var(--leaf-dark);
+  outline-offset: 1px;
+}
+
+.calendar-day.blank {
+  background: none;
+}
+
+.legend {
+  list-style: none;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 14px 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.swatch.free {
+  background: #f5faf6;
+  border: 1px solid var(--line);
+}
+
+.swatch.booked {
+  background: var(--leaf);
+}
+
+.swatch.mine {
+  background: #c98a2b;
+}
+
 @media (max-width: 560px) {
-  .facts {
-    columns: 1;
+  .hero {
+    padding: 28px 22px;
+  }
+
+  .calendar-grid {
+    gap: 4px;
   }
 }
