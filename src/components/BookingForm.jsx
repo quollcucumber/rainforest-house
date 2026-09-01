@@ -52,12 +52,17 @@ export default function BookingForm({ user, bookings, booking, onLongStay, onDon
     setError(null)
     setBusy(true)
     try {
-      if (booking) await updateBooking(booking.id, form)
+      if (booking) await updateBooking(booking, form)
       else await createBooking(user, form)
       if (!booking) setForm(initialForm(null, user))
       onDone?.()
     } catch (err) {
-      setError(err.message)
+      // The nights are claimed one document per date, so a clash surfaces as a rules rejection.
+      setError(
+        err.code === 'permission-denied'
+          ? 'Some of those nights have just been booked by somebody else — please pick other dates.'
+          : err.message,
+      )
     } finally {
       setBusy(false)
     }
@@ -105,7 +110,7 @@ export default function BookingForm({ user, bookings, booking, onLongStay, onDon
         </label>
       </div>
       <label>
-        Anything we should know? (arrival time, nursery volunteering, accessibility…)
+        Notes for the caretakers (optional)
         <textarea rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
       </label>
       <p className="muted">
@@ -114,7 +119,7 @@ export default function BookingForm({ user, bookings, booking, onLongStay, onDon
       </p>
       {error && <p className="error">{error}</p>}
       <button type="submit" disabled={busy || tooLong}>
-        {booking ? 'Save changes' : 'Request booking'}
+        {booking ? 'Save changes' : 'Book these dates'}
       </button>
     </form>
   )
