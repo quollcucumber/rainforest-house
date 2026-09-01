@@ -1,15 +1,51 @@
 import {
   collection,
+  deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   where,
   writeBatch,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import { nightsBetween, nightsOf } from './booking'
+import { domainOf, nightsBetween, nightsOf, normaliseEmail } from './booking'
+
+// The caretakers keep two allowlists: whole domains and individual addresses. An account whose
+// address matches neither cannot read or write anything (see firestore.rules).
+export function subscribeToAllowlist(kind, onChange, onError) {
+  return onSnapshot(
+    query(collection(db, kind === 'domain' ? 'allowedDomains' : 'allowedEmails')),
+    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError,
+  )
+}
+
+export function allowEntry(user, kind, value) {
+  const path = kind === 'domain' ? 'allowedDomains' : 'allowedEmails'
+  return setDoc(doc(db, path, normaliseEmail(value)), {
+    addedBy: user.email,
+    addedAt: serverTimestamp(),
+  })
+}
+
+export function revokeEntry(kind, value) {
+  const path = kind === 'domain' ? 'allowedDomains' : 'allowedEmails'
+  return deleteDoc(doc(db, path, normaliseEmail(value)))
+}
+
+// Each account may read its own two allowlist entries, so the app can say why it is locked out.
+export async function hasAccess(user) {
+  const email = normaliseEmail(user.email)
+  const [byEmail, byDomain] = await Promise.all([
+    getDoc(doc(db, 'allowedEmails', email)),
+    getDoc(doc(db, 'allowedDomains', domainOf(email))),
+  ])
+  return byEmail.exists() || byDomain.exists()
+}
 
 // Dates and the booking name live in `bookings`, readable by anyone with an account; email addresses
 // and notes live in `bookingDetails`, readable only by the guest and the caretakers.

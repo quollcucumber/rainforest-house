@@ -25,6 +25,10 @@ let env
 const guest = { sub: 'guest-1', email: 'guest@example.com', email_verified: true }
 const other = { sub: 'guest-2', email: 'other@example.com', email_verified: true }
 const caretaker = { sub: 'care-1', email: 'arainforest@greatcactus.org', email_verified: true }
+// example.com is on the domain allowlist (seeded below); the others are not, or are unconfirmed.
+const unverified = { sub: 'guest-1', email: 'guest@example.com', email_verified: false }
+const outsider = { sub: 'guest-3', email: 'nobody@elsewhere.org', email_verified: true }
+const named = { sub: 'guest-4', email: 'named@elsewhere.org', email_verified: true }
 
 function booking(overrides = {}) {
   return {
@@ -57,13 +61,22 @@ before(async () => {
     projectId: 'demo-rainforest-house',
     firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 },
   })
+  await seedAllowlist()
 })
+
+async function seedAllowlist() {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore()
+    await setDoc(doc(db, 'allowedDomains/example.com'), { addedBy: caretaker.email })
+    await setDoc(doc(db, 'allowedEmails/named@elsewhere.org'), { addedBy: caretaker.email })
+  })
+}
 
 after(async () => {
   await env?.cleanup()
 })
 
-test('the calendar needs an account; comments are readable by anybody', async () => {
+test('the calendar needs an allowed, confirmed account; comments are readable by anybody', async () => {
   const anon = env.unauthenticatedContext().firestore()
   const db = env.authenticatedContext(guest.sub, guest).firestore()
   await assertFails(getDocs(collection(anon, 'bookings')))
@@ -71,6 +84,43 @@ test('the calendar needs an account; comments are readable by anybody', async ()
   await assertSucceeds(getDocs(collection(db, 'bookings')))
   await assertSucceeds(getDocs(collection(db, 'nights')))
   await assertSucceeds(getDocs(collection(anon, 'comments')))
+})
+
+test('only allowed addresses or domains may use the site, and only once confirmed', async () => {
+  const byDomain = env.authenticatedContext(guest.sub, guest).firestore()
+  const byAddress = env.authenticatedContext(named.sub, named).firestore()
+  const notConfirmed = env.authenticatedContext(unverified.sub, unverified).firestore()
+  const notAllowed = env.authenticatedContext(outsider.sub, outsider).firestore()
+
+  await assertSucceeds(getDocs(collection(byDomain, 'bookings')))
+  await assertSucceeds(getDocs(collection(byAddress, 'bookings')))
+  await assertFails(getDocs(collection(notConfirmed, 'bookings')))
+  await assertFails(getDocs(collection(notAllowed, 'bookings')))
+
+  await assertFails(addDoc(collection(notAllowed, 'bookings'), booking({ uid: outsider.sub })))
+  await assertFails(
+    addDoc(collection(notConfirmed, 'bookings'), booking({ startDate: '2032-01-01', endDate: '2032-01-03', nights: 2 })),
+  )
+})
+
+test('only caretakers change the allowlist; everybody else sees just their own entry', async () => {
+  const admin = env.authenticatedContext(caretaker.sub, caretaker).firestore()
+  const db = env.authenticatedContext(guest.sub, guest).firestore()
+  const anon = env.unauthenticatedContext().firestore()
+
+  await assertSucceeds(setDoc(doc(admin, 'allowedEmails/friend@elsewhere.org'), { addedBy: caretaker.email }))
+  await assertSucceeds(deleteDoc(doc(admin, 'allowedEmails/friend@elsewhere.org')))
+  await assertSucceeds(getDocs(collection(admin, 'allowedEmails')))
+
+  await assertFails(setDoc(doc(db, 'allowedEmails/guest@example.com'), { addedBy: guest.email }))
+  await assertFails(setDoc(doc(db, 'allowedDomains/example.com'), { addedBy: guest.email }))
+  await assertFails(getDocs(collection(db, 'allowedEmails')))
+  await assertFails(getDoc(doc(db, 'allowedEmails/named@elsewhere.org')))
+  await assertSucceeds(getDoc(doc(db, 'allowedDomains/example.com')))
+  await assertSucceeds(getDoc(doc(db, 'allowedEmails/guest@example.com')))
+  await assertFails(getDoc(doc(anon, 'allowedDomains/example.com')))
+
+  await seedAllowlist()
 })
 
 test('booking names are visible to guests, emails and notes are not', async () => {

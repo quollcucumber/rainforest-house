@@ -3,7 +3,10 @@ import test from 'node:test'
 import {
   LONG_STAY_MESSAGE,
   bookedNights,
+  domainOf,
   isPrivileged,
+  isValidDomain,
+  isValidEmail,
   monthGrid,
   namesByNight,
   nightsBetween,
@@ -11,6 +14,16 @@ import {
   overlaps,
   validateBooking,
 } from './booking.js'
+
+test('allowlist entries are recognised as addresses or domains', () => {
+  assert.equal(domainOf('Guest@Example.ORG'), 'example.org')
+  assert.equal(domainOf('nonsense'), '')
+  assert.equal(isValidEmail('guest@example.org'), true)
+  assert.equal(isValidEmail('example.org'), false)
+  assert.equal(isValidDomain('example.org'), true)
+  assert.equal(isValidDomain('guest@example.org'), false)
+  assert.equal(isValidDomain('example'), false)
+})
 
 function futureDate(offsetDays) {
   return new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10)
