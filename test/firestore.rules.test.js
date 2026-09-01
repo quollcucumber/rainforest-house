@@ -29,10 +29,12 @@ const caretaker = { sub: 'care-1', email: 'arainforest@greatcactus.org', email_v
 function booking(overrides = {}) {
   return {
     uid: 'guest-1',
+    guestName: 'Guest One',
     startDate: '2030-03-01',
     endDate: '2030-03-08',
     nights: 7,
     guests: 2,
+    todo: false,
     status: 'confirmed',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -44,7 +46,6 @@ function details(overrides = {}) {
   return {
     uid: 'guest-1',
     email: 'guest@example.com',
-    guestName: 'Guest One',
     notes: '',
     updatedAt: new Date(),
     ...overrides,
@@ -69,7 +70,7 @@ test('signed-out visitors can read the calendar and the comments', async () => {
   await assertSucceeds(getDocs(collection(db, 'comments')))
 })
 
-test('names, emails and notes are not public', async () => {
+test('booking names are public, emails and notes are not', async () => {
   await env.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), 'bookingDetails/d1'), details())
   })
@@ -83,6 +84,18 @@ test('names, emails and notes are not public', async () => {
   await assertSucceeds(getDoc(doc(owner, 'bookingDetails/d1')))
   await assertSucceeds(getDocs(query(collection(owner, 'bookingDetails'), where('uid', '==', guest.sub))))
   await assertSucceeds(getDocs(collection(admin, 'bookingDetails')))
+
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'bookings/named'), booking())
+  })
+  const named = await getDoc(doc(anon, 'bookings/named'))
+  assert.equal(named.data().guestName, 'Guest One')
+})
+
+test('a booking must carry a name', async () => {
+  const db = env.authenticatedContext(guest.sub, guest).firestore()
+  await assertFails(addDoc(collection(db, 'bookings'), booking({ guestName: '' })))
+  await assertFails(addDoc(collection(db, 'bookings'), booking({ guestName: 'x'.repeat(121) })))
 })
 
 test('a guest can create a stay of 21 nights but not 22', async () => {

@@ -15,6 +15,7 @@ function initialForm(booking, user) {
     startDate: booking?.startDate ?? '',
     endDate: booking?.endDate ?? '',
     guests: booking?.guests ?? 2,
+    todo: booking?.todo ?? false,
     notes: booking?.notes ?? '',
   }
 }
@@ -74,6 +75,7 @@ export default function BookingForm({ user, bookings, booking, onLongStay, onDon
         <label>
           Booking name
           <input required value={form.guestName} onChange={(e) => set('guestName', e.target.value)} />
+          <span className="hint">Shown on the public calendar.</span>
         </label>
         <label>
           Guests
@@ -109,6 +111,10 @@ export default function BookingForm({ user, bookings, booking, onLongStay, onDon
           />
         </label>
       </div>
+      <label className="check">
+        <input type="checkbox" checked={form.todo} onChange={(e) => set('todo', e.target.checked)} />
+        TODO
+      </label>
       <label>
         Notes for the caretakers (optional)
         <textarea rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />

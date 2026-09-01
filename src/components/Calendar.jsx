@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { bookedNights, monthGrid, today } from '../lib/booking'
+import { bookedNights, monthGrid, namesByNight, today } from '../lib/booking'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = [
@@ -27,6 +27,7 @@ export default function Calendar({ bookings, uid }) {
     () => bookedNights(bookings.filter((booking) => booking.uid && booking.uid === uid)),
     [bookings, uid],
   )
+  const names = useMemo(() => namesByNight(bookings), [bookings])
   const cells = useMemo(() => monthGrid(year, month), [year, month])
 
   function shift(months) {
@@ -51,7 +52,7 @@ export default function Calendar({ bookings, uid }) {
           </button>
         </div>
       </div>
-      <p className="muted">Booked nights are shaded. Anyone can see this — names stay private.</p>
+      <p className="muted">Booked nights are shaded, with the name of whoever has the house.</p>
 
       <div className="calendar-grid" role="grid">
         {WEEKDAYS.map((day) => (
@@ -71,9 +72,10 @@ export default function Calendar({ bookings, uid }) {
               ]
                 .filter(Boolean)
                 .join(' ')}
-              title={taken.has(date) ? `${date} — booked` : `${date} — free`}
+              title={taken.has(date) ? `${date} — ${names.get(date) ?? 'booked'}` : `${date} — free`}
             >
-              {Number(date.slice(8, 10))}
+              <span className="day-number">{Number(date.slice(8, 10))}</span>
+              {names.has(date) && <span className="day-name">{names.get(date)}</span>}
             </div>
           ) : (
             <div key={`blank-${index}`} className="calendar-day blank" />

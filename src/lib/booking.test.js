@@ -5,6 +5,7 @@ import {
   bookedNights,
   isPrivileged,
   monthGrid,
+  namesByNight,
   nightsBetween,
   nightsOf,
   overlaps,
@@ -136,6 +137,17 @@ test('bookedNights ignores cancelled bookings and merges the rest', () => {
     { startDate: '2026-02-01', endDate: '2026-02-05', status: 'cancelled' },
   ])
   assert.deepEqual([...taken].sort(), ['2026-01-01', '2026-01-02', '2026-01-03'])
+})
+
+test('namesByNight names each occupied night and skips cancelled stays', () => {
+  const names = namesByNight([
+    { startDate: '2026-01-01', endDate: '2026-01-03', status: 'confirmed', guestName: 'Ada' },
+    { startDate: '2026-01-03', endDate: '2026-01-04', status: 'confirmed', guestName: 'Bo' },
+    { startDate: '2026-02-01', endDate: '2026-02-02', status: 'cancelled', guestName: 'Cy' },
+  ])
+  assert.equal(names.get('2026-01-02'), 'Ada')
+  assert.equal(names.get('2026-01-03'), 'Bo')
+  assert.equal(names.has('2026-02-01'), false)
 })
 
 test('monthGrid pads to the weekday the month starts on', () => {

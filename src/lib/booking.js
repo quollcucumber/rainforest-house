@@ -52,6 +52,15 @@ export function bookedNights(bookings) {
   return taken
 }
 
+// Booking names are public, so the calendar can say who holds each night.
+export function namesByNight(bookings) {
+  const names = new Map()
+  bookings
+    .filter((booking) => booking.status !== 'cancelled' && booking.guestName)
+    .forEach((booking) => nightsOf(booking).forEach((date) => names.set(date, booking.guestName)))
+  return names
+}
+
 export function monthGrid(year, month) {
   const first = new Date(Date.UTC(year, month, 1))
   const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()

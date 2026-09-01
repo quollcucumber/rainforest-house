@@ -607,11 +607,26 @@ button.danger:hover:not(:disabled) {
 .calendar-day {
   aspect-ratio: 1 / 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+  padding: 4px;
   border-radius: 12px;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+.day-name {
+  max-width: 100%;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .calendar-day.free {
@@ -639,6 +654,25 @@ button.danger:hover:not(:disabled) {
 
 .calendar-day.blank {
   background: none;
+}
+
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+label.check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--leaf);
+}
+
+.hint {
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--ink-soft);
 }
 
 .legend {
