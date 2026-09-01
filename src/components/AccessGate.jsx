@@ -43,9 +43,7 @@ export default function AccessGate({ user, reason, onRecheck }) {
       ) : (
         <p className="muted">
           <strong>{user.email}</strong> is confirmed, but a caretaker has to allow your address or its
-          domain before you can see the calendar or book. Ask{' '}
-          <a href="mailto:arainforest@greatcactus.org">arainforest@greatcactus.org</a> or{' '}
-          <a href="mailto:vrainforest@greatcactus.org">vrainforest@greatcactus.org</a>.
+          domain before you can see the calendar or book. Ask a caretaker to add you.
         </p>
       )}
       {notice && <p className="notice">{notice}</p>}
