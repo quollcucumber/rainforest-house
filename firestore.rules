@@ -25,11 +25,15 @@ service cloud.firestore {
       return timestamp.date(int(value[0:4]), int(value[5:7]), int(value[8:10]));
     }
 
-    // Public: dates only, so the calendar works without an account.
+    // Public: dates and the booking name, so the calendar works without an account.
     function bookingShape(data) {
       return data.keys().hasOnly([
-          'uid', 'startDate', 'endDate', 'nights', 'guests', 'status', 'createdAt', 'updatedAt'
+          'uid', 'guestName', 'startDate', 'endDate', 'nights', 'guests', 'todo',
+          'status', 'createdAt', 'updatedAt'
         ])
+        && data.guestName is string
+        && data.guestName.size() > 0 && data.guestName.size() <= 120
+        && data.todo is bool
         && data.startDate is string && data.startDate.size() == 10
         && data.endDate is string && data.endDate.size() == 10
         && data.guests is int && data.guests >= 1 && data.guests <= 8
@@ -60,15 +64,12 @@ service cloud.firestore {
       allow delete: if caretaker() || resource.data.uid == request.auth.uid;
     }
 
-    // Guest name, email address and notes: only the guest and the caretakers see these.
+    // Email address and notes: only the guest and the caretakers see these.
     match /bookingDetails/{bookingId} {
       allow read: if caretaker() || resource.data.uid == request.auth.uid;
 
       allow create, update: if signedIn()
-        && request.resource.data.keys().hasOnly(['uid', 'email', 'guestName', 'notes', 'updatedAt'])
-        && request.resource.data.guestName is string
-        && request.resource.data.guestName.size() > 0
-        && request.resource.data.guestName.size() <= 120
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'notes', 'updatedAt'])
         && request.resource.data.notes is string
         && request.resource.data.notes.size() <= 2000
         && (caretaker() || request.resource.data.uid == request.auth.uid);

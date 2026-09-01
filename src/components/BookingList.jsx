@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { cancelBooking, deleteBooking, reinstateBooking } from '../lib/db'
 import BookingForm from './BookingForm'
 
-function Row({ booking, user, canManage, bookings, onLongStay }) {
+function Row({ booking, user, canManage, isAdmin, bookings, onLongStay }) {
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState(null)
 
@@ -28,9 +28,11 @@ function Row({ booking, user, canManage, bookings, onLongStay }) {
             {booking.guests === 1 ? '' : 's'}
           </span>
           <div className="muted">
-            {canManage && booking.guestName ? `${booking.guestName} (${booking.email})` : 'Booked'}
+            {booking.guestName || 'Booked'}
+            {isAdmin && booking.email ? ` (${booking.email})` : ''}
             {booking.uid === user.uid ? ' · your booking' : ''}
             {booking.status === 'cancelled' ? ' · cancelled' : ''}
+            {booking.todo ? ' · TODO' : ''}
           </div>
           {canManage && booking.notes && <p className="notes">{booking.notes}</p>}
         </div>
@@ -82,6 +84,7 @@ export default function BookingList({ title, items, bookings, user, isAdmin, onL
               booking={booking}
               user={user}
               bookings={bookings}
+              isAdmin={isAdmin}
               canManage={isAdmin || booking.uid === user.uid}
               onLongStay={onLongStay}
             />

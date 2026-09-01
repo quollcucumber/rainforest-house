@@ -13,20 +13,22 @@ import {
 import { db } from '../firebase'
 import { nightsBetween, nightsOf } from './booking'
 
-// Dates live in `bookings` (world readable, so the calendar works without an account);
-// names, emails and notes live in `bookingDetails`, readable only by the owner and the caretakers.
+// Dates and the booking name live in `bookings` (world readable, so the calendar works without an
+// account); email addresses and notes live in `bookingDetails`, readable only by the guest and the
+// caretakers.
 function publicFields(form) {
   return {
+    guestName: form.guestName,
     startDate: form.startDate,
     endDate: form.endDate,
     nights: nightsBetween(form.startDate, form.endDate),
     guests: Number(form.guests),
+    todo: Boolean(form.todo),
   }
 }
 
 function privateFields(form) {
   return {
-    guestName: form.guestName,
     notes: form.notes ?? '',
   }
 }
