@@ -42,7 +42,7 @@ export default function AuthPanel() {
     <section className="card auth">
       <h2>{mode === 'signup' ? 'Create an account' : mode === 'reset' ? 'Reset password' : 'Sign in'}</h2>
       <p className="muted">
-        An account lets you book the house, change your own booking and leave a comment after your stay.
+        An account lets you book the house, change your own booking and leave a comment.
       </p>
       <form onSubmit={handleSubmit}>
         {mode === 'signup' && (
