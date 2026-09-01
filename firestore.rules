@@ -21,11 +21,33 @@ service cloud.firestore {
         && request.auth.token.email.lower() in caretakerEmails();
     }
 
+    function email() {
+      return request.auth.token.email.lower();
+    }
+
+    function emailDomain() {
+      return email().split('@')[1];
+    }
+
+    // The caretakers decide who may use the site: an address on `allowedEmails`, or any address on
+    // an `allowedDomains` domain. Either way the address must be verified first.
+    function allowed() {
+      return caretaker() || (
+        signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && (
+          exists(/databases/$(database)/documents/allowedEmails/$(email()))
+          || exists(/databases/$(database)/documents/allowedDomains/$(emailDomain()))
+        )
+      );
+    }
+
     function asDate(value) {
       return timestamp.date(int(value[0:4]), int(value[5:7]), int(value[8:10]));
     }
 
-    // Public: dates and the booking name, so the calendar works without an account.
+    // Readable by any allowed account: dates and the booking name, which is what the calendar shows.
     function bookingShape(data) {
       return data.keys().hasOnly([
           'uid', 'guestName', 'startDate', 'endDate', 'nights', 'guests', 'todo',
@@ -47,28 +69,43 @@ service cloud.firestore {
         && (caretaker() || asDate(data.endDate) - asDate(data.startDate) <= duration.value(21, 'd'));
     }
 
-    match /bookings/{bookingId} {
-      allow read: if true;
+    // Only the caretakers see the whole allowlist; everybody else may check their own two entries,
+    // so the app can tell them they are not on it.
+    match /allowedEmails/{allowedEmail} {
+      allow get: if caretaker() || (signedIn() && request.auth.token.email != null && email() == allowedEmail);
+      allow list: if caretaker();
+      allow write: if caretaker();
+    }
 
-      allow create: if signedIn()
+    match /allowedDomains/{allowedDomain} {
+      allow get: if caretaker() || (signedIn() && request.auth.token.email != null && emailDomain() == allowedDomain);
+      allow list: if caretaker();
+      allow write: if caretaker();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if allowed();
+
+      allow create: if allowed()
         && bookingShape(request.resource.data)
         && lengthAllowed(request.resource.data)
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.status == 'confirmed';
 
-      allow update: if (caretaker() || resource.data.uid == request.auth.uid)
+      allow update: if allowed()
+        && (caretaker() || resource.data.uid == request.auth.uid)
         && bookingShape(request.resource.data)
         && lengthAllowed(request.resource.data)
         && request.resource.data.uid == resource.data.uid;
 
-      allow delete: if caretaker() || resource.data.uid == request.auth.uid;
+      allow delete: if allowed() && (caretaker() || resource.data.uid == request.auth.uid);
     }
 
     // Email address and notes: only the guest and the caretakers see these.
     match /bookingDetails/{bookingId} {
-      allow read: if caretaker() || resource.data.uid == request.auth.uid;
+      allow read: if caretaker() || (allowed() && resource.data.uid == request.auth.uid);
 
-      allow create, update: if signedIn()
+      allow create, update: if allowed()
         && request.resource.data.keys().hasOnly(['uid', 'email', 'notes', 'updatedAt'])
         && request.resource.data.notes is string
         && request.resource.data.notes.size() <= 2000
@@ -80,9 +117,9 @@ service cloud.firestore {
     // One document per booked night, keyed by the date. Creating a night that already
     // exists is an update, which is never allowed — that is what stops bookings overlapping.
     match /nights/{date} {
-      allow read: if true;
+      allow read: if allowed();
 
-      allow create: if signedIn()
+      allow create: if allowed()
         && request.resource.data.keys().hasOnly(['uid', 'bookingId'])
         && request.resource.data.bookingId is string
         && (caretaker() || request.resource.data.uid == request.auth.uid);
@@ -92,16 +129,17 @@ service cloud.firestore {
     }
 
     match /comments/{commentId} {
-      allow read: if true;
+      allow read: if allowed();
 
-      // Anyone with an account can comment at any time; a comment may name one of the
+      // Anyone allowed on the site can comment at any time; a comment may name one of the
       // commenter's own bookings, but does not have to.
-      allow create: if signedIn()
+      allow create: if allowed()
         && request.resource.data.keys().hasOnly([
-             'uid', 'email', 'bookingId', 'stayDates', 'rating', 'body', 'createdAt'
+             'uid', 'name', 'bookingId', 'stayDates', 'rating', 'body', 'createdAt'
            ])
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
         && request.resource.data.body is string
@@ -113,6 +151,19 @@ service cloud.firestore {
           request.resource.data.bookingId == ''
           || get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.uid == request.auth.uid
         );
+
+      allow update: if false;
+      allow delete: if caretaker() || resource.data.uid == request.auth.uid;
+    }
+
+    // A commenter's email address: comments themselves carry only a name.
+    match /commentDetails/{commentId} {
+      allow read: if caretaker() || resource.data.uid == request.auth.uid;
+
+      allow create: if allowed()
+        && request.resource.data.keys().hasOnly(['uid', 'email'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
 
       allow update: if false;
       allow delete: if caretaker() || resource.data.uid == request.auth.uid;

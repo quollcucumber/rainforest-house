@@ -235,6 +235,11 @@ a.button.quiet:hover {
   margin-top: 16px;
 }
 
+.gallery h3 {
+  margin: 22px 0 0;
+  font-size: 1.05rem;
+}
+
 .gallery-grid figure {
   margin: 0;
   border-radius: 14px;
@@ -418,6 +423,60 @@ button.danger:hover:not(:disabled) {
   color: var(--ink-soft);
   font-size: 0.92rem;
   margin: 6px 0;
+}
+
+.allowlist-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.allowlist-form label {
+  flex: 1 1 260px;
+}
+
+.allowlist {
+  list-style: none;
+  margin: 6px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.allowlist li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px 7px 14px;
+  border-radius: 999px;
+  background: linear-gradient(160deg, var(--leaf), var(--leaf-deep));
+  color: #fff;
+}
+
+.allowlist code {
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.allowlist button.link {
+  color: #fff;
+  opacity: 0.85;
+  padding: 2px 8px;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.allowlist button.link:hover:not(:disabled) {
+  color: #fff;
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.muted a {
+  color: var(--leaf);
+  font-weight: 600;
 }
 
 .error {

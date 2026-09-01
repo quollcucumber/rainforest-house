@@ -2,7 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth, isFirebaseConfigured } from './firebase'
 import { LONG_STAY_MESSAGE, isPrivileged, today } from './lib/booking'
-import { subscribeToBookingDetails, subscribeToBookings, subscribeToComments } from './lib/db'
+import {
+  hasAccess,
+  subscribeToBookingDetails,
+  subscribeToBookings,
+  subscribeToCommentDetails,
+  subscribeToComments,
+} from './lib/db'
+import AccessGate from './components/AccessGate'
+import AllowlistPanel from './components/AllowlistPanel'
 import AuthPanel from './components/AuthPanel'
 import BookingForm from './components/BookingForm'
 import BookingList from './components/BookingList'
@@ -59,10 +67,7 @@ function Footer() {
     <footer className="site-footer">
       <div className="site-footer-inner">
         <span>Cow Bay airstrip nursery house</span>
-        <span>
-          Stays longer than 3 weeks: <a href="mailto:arainforest@greatcactus.org">arainforest@greatcactus.org</a>{' '}
-          or <a href="mailto:vrainforest@greatcactus.org">vrainforest@greatcactus.org</a>
-        </span>
+        <span>Stays longer than 3 weeks are arranged with the caretakers.</span>
       </div>
     </footer>
   )
@@ -83,9 +88,32 @@ function Gallery() {
           />
         </figure>
       </div>
+      <h3>The cassowaries</h3>
+      <div className="gallery-grid">
+        <figure>
+          <img
+            src="/images/cassowary-looking-at-camera.jpg"
+            alt="An adult male southern cassowary looking straight at the camera in a Cow Bay garden"
+          />
+        </figure>
+        <figure>
+          <img
+            src="/images/cassowary-preening.jpg"
+            alt="A southern cassowary preening its chest feathers after feeding"
+          />
+        </figure>
+        <figure>
+          <img
+            src="/images/cassowary-neck.jpg"
+            alt="The blue and red neck of a southern cassowary in bright light"
+          />
+        </figure>
+      </div>
       <p className="credit">
-        Photographs of the Daintree rainforest, far north Queensland — public domain (CC0) via Wikimedia
-        Commons. They show the surrounding rainforest, not the house itself.
+        Rainforest photographs: Daintree, far north Queensland — public domain (CC0) via Wikimedia
+        Commons. Cassowary photographs:{' '}
+        <a href="https://swampythings.wordpress.com/tag/cassowary/">Wild Wings &amp; Swampy Things</a>,
+        Cow Bay. None of them show the house itself.
       </p>
     </section>
   )
@@ -96,7 +124,9 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false)
   const [publicBookings, setPublicBookings] = useState([])
   const [details, setDetails] = useState({})
-  const [comments, setComments] = useState([])
+  const [publicComments, setPublicComments] = useState([])
+  const [commentDetails, setCommentDetails] = useState({})
+  const [access, setAccess] = useState('none')
   const [dataError, setDataError] = useState(null)
   const [showLongStay, setShowLongStay] = useState(false)
 
@@ -111,31 +141,77 @@ export default function App() {
     })
   }, [])
 
-  useEffect(() => {
-    if (!isFirebaseConfigured) return
-    return subscribeToBookings(setPublicBookings, (err) => setDataError(err.message))
-  }, [])
-
   const isAdmin = isPrivileged(user?.email)
 
+  // 'none' → signed out, 'unverified' → email not confirmed, 'denied' → not on the caretakers'
+  // allowlist, 'allowed' → may use the site. Nothing is read from Firestore until 'allowed'.
+  const checkAccess = useCallback(async () => {
+    if (!isFirebaseConfigured || !auth.currentUser) return setAccess('none')
+    const current = auth.currentUser
+    setUser(current)
+    if (isPrivileged(current.email)) return setAccess('allowed')
+    if (!current.emailVerified) return setAccess('unverified')
+    setAccess((await hasAccess(current)) ? 'allowed' : 'denied')
+  }, [])
+
   useEffect(() => {
-    if (!isFirebaseConfigured || !user) {
+    if (!user) {
+      setAccess('none')
+      return
+    }
+    setAccess('checking')
+    checkAccess().catch((err) => {
+      setDataError(err.message)
+      setAccess('denied')
+    })
+  }, [user, checkAccess])
+
+  const allowed = access === 'allowed'
+
+  // The calendar needs an allowed account, so bookings are only read once there is one.
+  useEffect(() => {
+    if (!isFirebaseConfigured || !allowed) {
+      setPublicBookings([])
+      return
+    }
+    return subscribeToBookings(setPublicBookings, (err) => setDataError(err.message))
+  }, [allowed])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !allowed) {
       setDetails({})
       return
     }
     return subscribeToBookingDetails(user, isAdmin, setDetails, (err) => setDataError(err.message))
-  }, [user, isAdmin])
+  }, [allowed, user, isAdmin])
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return
-    return subscribeToComments(setComments, (err) => setDataError(err.message))
-  }, [])
+    if (!isFirebaseConfigured || !allowed) {
+      setPublicComments([])
+      return
+    }
+    return subscribeToComments(setPublicComments, (err) => setDataError(err.message))
+  }, [allowed])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !allowed) {
+      setCommentDetails({})
+      return
+    }
+    return subscribeToCommentDetails(user, isAdmin, setCommentDetails, (err) =>
+      setDataError(err.message),
+    )
+  }, [allowed, user, isAdmin])
 
   const onLongStay = useCallback(() => setShowLongStay(true), [])
 
   const bookings = useMemo(
     () => publicBookings.map((booking) => ({ ...booking, ...(details[booking.id] ?? {}) })),
     [publicBookings, details],
+  )
+  const comments = useMemo(
+    () => publicComments.map((comment) => ({ ...comment, ...(commentDetails[comment.id] ?? {}) })),
+    [publicComments, commentDetails],
   )
   const myBookings = useMemo(
     () => bookings.filter((booking) => booking.uid === user?.uid),
@@ -175,11 +251,25 @@ export default function App() {
 
         <Gallery />
 
-        <Calendar bookings={publicBookings} uid={user?.uid} />
+        {allowed ? (
+          <Calendar bookings={publicBookings} uid={user?.uid} />
+        ) : (
+          <section className="card" id="calendar">
+            <h2>Who is in the house</h2>
+            <p className="muted">
+              The calendar is for guests: <a href="#book">create an account or sign in</a> with an address
+              the caretakers have allowed to see who has the house and to book your own dates.
+            </p>
+          </section>
+        )}
 
-        {!authReady ? (
+        {!authReady || access === 'checking' ? (
           <p className="muted">Loading…</p>
-        ) : user ? (
+        ) : !user ? (
+          <AuthPanel />
+        ) : !allowed ? (
+          <AccessGate user={user} reason={access} onRecheck={checkAccess} />
+        ) : (
           <>
             <section className="card account">
               <div>
@@ -211,22 +301,29 @@ export default function App() {
             />
 
             {isAdmin && (
-              <BookingList
-                title="All upcoming bookings (caretaker view)"
-                items={upcoming}
-                bookings={bookings}
-                user={user}
-                isAdmin={isAdmin}
-                onLongStay={onLongStay}
-                empty="Nothing booked yet."
-              />
+              <>
+                <BookingList
+                  title="All upcoming bookings (caretaker view)"
+                  items={upcoming}
+                  bookings={bookings}
+                  user={user}
+                  isAdmin={isAdmin}
+                  onLongStay={onLongStay}
+                  empty="Nothing booked yet."
+                />
+                <AllowlistPanel user={user} />
+              </>
             )}
           </>
-        ) : (
-          <AuthPanel />
         )}
 
-        <Comments user={user} isAdmin={isAdmin} comments={comments} bookings={myBookings} />
+        <Comments
+          allowed={allowed}
+          user={allowed ? user : null}
+          isAdmin={isAdmin}
+          comments={comments}
+          bookings={myBookings}
+        />
 
         {showLongStay && (
           <Modal title="Longer than 3 weeks" onClose={() => setShowLongStay(false)}>

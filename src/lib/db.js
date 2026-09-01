@@ -1,21 +1,54 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   where,
   writeBatch,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import { nightsBetween, nightsOf } from './booking'
+import { domainOf, nightsBetween, nightsOf, normaliseEmail } from './booking'
 
-// Dates and the booking name live in `bookings` (world readable, so the calendar works without an
-// account); email addresses and notes live in `bookingDetails`, readable only by the guest and the
-// caretakers.
+// The caretakers keep two allowlists: whole domains and individual addresses. An account whose
+// address matches neither cannot read or write anything (see firestore.rules).
+export function subscribeToAllowlist(kind, onChange, onError) {
+  return onSnapshot(
+    query(collection(db, kind === 'domain' ? 'allowedDomains' : 'allowedEmails')),
+    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError,
+  )
+}
+
+export function allowEntry(user, kind, value) {
+  const path = kind === 'domain' ? 'allowedDomains' : 'allowedEmails'
+  return setDoc(doc(db, path, normaliseEmail(value)), {
+    addedBy: user.email,
+    addedAt: serverTimestamp(),
+  })
+}
+
+export function revokeEntry(kind, value) {
+  const path = kind === 'domain' ? 'allowedDomains' : 'allowedEmails'
+  return deleteDoc(doc(db, path, normaliseEmail(value)))
+}
+
+// Each account may read its own two allowlist entries, so the app can say why it is locked out.
+export async function hasAccess(user) {
+  const email = normaliseEmail(user.email)
+  const [byEmail, byDomain] = await Promise.all([
+    getDoc(doc(db, 'allowedEmails', email)),
+    getDoc(doc(db, 'allowedDomains', domainOf(email))),
+  ])
+  return byEmail.exists() || byDomain.exists()
+}
+
+// Dates and the booking name live in `bookings`, readable by anyone with an account; email addresses
+// and notes live in `bookingDetails`, readable only by the guest and the caretakers.
 function publicFields(form) {
   return {
     guestName: form.guestName,
@@ -53,6 +86,22 @@ export function subscribeToBookingDetails(user, isAdmin, onChange, onError) {
         byBooking[d.id] = d.data()
       })
       onChange(byBooking)
+    },
+    onError,
+  )
+}
+
+export function subscribeToCommentDetails(user, isAdmin, onChange, onError) {
+  const details = collection(db, 'commentDetails')
+  const q = isAdmin ? query(details) : query(details, where('uid', '==', user.uid))
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const byComment = {}
+      snapshot.docs.forEach((d) => {
+        byComment[d.id] = d.data()
+      })
+      onChange(byComment)
     },
     onError,
   )
@@ -155,18 +204,31 @@ export function deleteBooking(booking) {
   return batch.commit()
 }
 
+// Comments show a name, never an email address: the address goes in `commentDetails`, which only
+// the commenter and the caretakers can read.
+export function displayNameFor(user) {
+  return user.displayName?.trim() || user.email.split('@')[0]
+}
+
 export function createComment(user, { bookingId, stayDates, rating, body }) {
-  return addDoc(collection(db, 'comments'), {
+  const commentRef = doc(collection(db, 'comments'))
+  const batch = writeBatch(db)
+  batch.set(commentRef, {
     uid: user.uid,
-    email: user.email,
+    name: displayNameFor(user),
     bookingId: bookingId ?? '',
     stayDates: stayDates ?? '',
     rating: Number(rating),
     body,
     createdAt: serverTimestamp(),
   })
+  batch.set(doc(db, 'commentDetails', commentRef.id), { uid: user.uid, email: user.email })
+  return batch.commit()
 }
 
 export function deleteComment(commentId) {
-  return deleteDoc(doc(db, 'comments', commentId))
+  const batch = writeBatch(db)
+  batch.delete(doc(db, 'comments', commentId))
+  batch.delete(doc(db, 'commentDetails', commentId))
+  return batch.commit()
 }

@@ -25,6 +25,10 @@ let env
 const guest = { sub: 'guest-1', email: 'guest@example.com', email_verified: true }
 const other = { sub: 'guest-2', email: 'other@example.com', email_verified: true }
 const caretaker = { sub: 'care-1', email: 'arainforest@greatcactus.org', email_verified: true }
+// example.com is on the domain allowlist (seeded below); the others are not, or are unconfirmed.
+const unverified = { sub: 'guest-1', email: 'guest@example.com', email_verified: false }
+const outsider = { sub: 'guest-3', email: 'nobody@elsewhere.org', email_verified: true }
+const named = { sub: 'guest-4', email: 'named@elsewhere.org', email_verified: true }
 
 function booking(overrides = {}) {
   return {
@@ -57,20 +61,70 @@ before(async () => {
     projectId: 'demo-rainforest-house',
     firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 },
   })
+  await seedAllowlist()
 })
+
+async function seedAllowlist() {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore()
+    await setDoc(doc(db, 'allowedDomains/example.com'), { addedBy: caretaker.email })
+    await setDoc(doc(db, 'allowedEmails/named@elsewhere.org'), { addedBy: caretaker.email })
+  })
+}
 
 after(async () => {
   await env?.cleanup()
 })
 
-test('signed-out visitors can read the calendar and the comments', async () => {
-  const db = env.unauthenticatedContext().firestore()
+test('the calendar and the comments need an allowed, confirmed account', async () => {
+  const anon = env.unauthenticatedContext().firestore()
+  const db = env.authenticatedContext(guest.sub, guest).firestore()
+  await assertFails(getDocs(collection(anon, 'bookings')))
+  await assertFails(getDocs(collection(anon, 'nights')))
   await assertSucceeds(getDocs(collection(db, 'bookings')))
   await assertSucceeds(getDocs(collection(db, 'nights')))
+  await assertFails(getDocs(collection(anon, 'comments')))
   await assertSucceeds(getDocs(collection(db, 'comments')))
 })
 
-test('booking names are public, emails and notes are not', async () => {
+test('only allowed addresses or domains may use the site, and only once confirmed', async () => {
+  const byDomain = env.authenticatedContext(guest.sub, guest).firestore()
+  const byAddress = env.authenticatedContext(named.sub, named).firestore()
+  const notConfirmed = env.authenticatedContext(unverified.sub, unverified).firestore()
+  const notAllowed = env.authenticatedContext(outsider.sub, outsider).firestore()
+
+  await assertSucceeds(getDocs(collection(byDomain, 'bookings')))
+  await assertSucceeds(getDocs(collection(byAddress, 'bookings')))
+  await assertFails(getDocs(collection(notConfirmed, 'bookings')))
+  await assertFails(getDocs(collection(notAllowed, 'bookings')))
+
+  await assertFails(addDoc(collection(notAllowed, 'bookings'), booking({ uid: outsider.sub })))
+  await assertFails(
+    addDoc(collection(notConfirmed, 'bookings'), booking({ startDate: '2032-01-01', endDate: '2032-01-03', nights: 2 })),
+  )
+})
+
+test('only caretakers change the allowlist; everybody else sees just their own entry', async () => {
+  const admin = env.authenticatedContext(caretaker.sub, caretaker).firestore()
+  const db = env.authenticatedContext(guest.sub, guest).firestore()
+  const anon = env.unauthenticatedContext().firestore()
+
+  await assertSucceeds(setDoc(doc(admin, 'allowedEmails/friend@elsewhere.org'), { addedBy: caretaker.email }))
+  await assertSucceeds(deleteDoc(doc(admin, 'allowedEmails/friend@elsewhere.org')))
+  await assertSucceeds(getDocs(collection(admin, 'allowedEmails')))
+
+  await assertFails(setDoc(doc(db, 'allowedEmails/guest@example.com'), { addedBy: guest.email }))
+  await assertFails(setDoc(doc(db, 'allowedDomains/example.com'), { addedBy: guest.email }))
+  await assertFails(getDocs(collection(db, 'allowedEmails')))
+  await assertFails(getDoc(doc(db, 'allowedEmails/named@elsewhere.org')))
+  await assertSucceeds(getDoc(doc(db, 'allowedDomains/example.com')))
+  await assertSucceeds(getDoc(doc(db, 'allowedEmails/guest@example.com')))
+  await assertFails(getDoc(doc(anon, 'allowedDomains/example.com')))
+
+  await seedAllowlist()
+})
+
+test('booking names are visible to guests, emails and notes are not', async () => {
   await env.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), 'bookingDetails/d1'), details())
   })
@@ -79,6 +133,7 @@ test('booking names are public, emails and notes are not', async () => {
   const owner = env.authenticatedContext(guest.sub, guest).firestore()
   const admin = env.authenticatedContext(caretaker.sub, caretaker).firestore()
 
+  await assertFails(getDoc(doc(anon, 'bookings/d1')))
   await assertFails(getDoc(doc(anon, 'bookingDetails/d1')))
   await assertFails(getDoc(doc(stranger, 'bookingDetails/d1')))
   await assertSucceeds(getDoc(doc(owner, 'bookingDetails/d1')))
@@ -88,7 +143,7 @@ test('booking names are public, emails and notes are not', async () => {
   await env.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), 'bookings/named'), booking())
   })
-  const named = await getDoc(doc(anon, 'bookings/named'))
+  const named = await getDoc(doc(stranger, 'bookings/named'))
   assert.equal(named.data().guestName, 'Guest One')
 })
 
@@ -195,7 +250,7 @@ test('anybody signed in may comment at any time, about a stay or not', async () 
 
   const comment = {
     uid: guest.sub,
-    email: guest.email,
+    name: 'Guest One',
     bookingId: 'b3',
     stayDates: '2030-03-01 → 2030-03-08',
     rating: 4,
@@ -210,17 +265,39 @@ test('anybody signed in may comment at any time, about a stay or not', async () 
     addDoc(collection(strangerDb, 'comments'), {
       ...comment,
       uid: other.sub,
-      email: other.email,
+      name: 'Guest Two',
       bookingId: '',
       stayDates: '',
     }),
   )
   // But not somebody else's stay, not anonymously, and not with a bogus rating.
   await assertFails(
-    addDoc(collection(strangerDb, 'comments'), { ...comment, uid: other.sub, email: other.email }),
+    addDoc(collection(strangerDb, 'comments'), { ...comment, uid: other.sub, name: 'Guest Two' }),
   )
   await assertFails(addDoc(collection(anon, 'comments'), { ...comment, uid: 'nobody' }))
   await assertFails(addDoc(collection(db, 'comments'), { ...comment, rating: 9 }))
+  await assertFails(addDoc(collection(db, 'comments'), { ...comment, email: guest.email }))
+})
+
+test('a commenter’s email is readable only by that commenter and the caretakers', async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'commentDetails/c1'), {
+      uid: guest.sub,
+      email: guest.email,
+    })
+  })
+  const anon = env.unauthenticatedContext().firestore()
+  const owner = env.authenticatedContext(guest.sub, guest).firestore()
+  const stranger = env.authenticatedContext(other.sub, other).firestore()
+  const admin = env.authenticatedContext(caretaker.sub, caretaker).firestore()
+
+  await assertFails(getDoc(doc(anon, 'commentDetails/c1')))
+  await assertFails(getDoc(doc(stranger, 'commentDetails/c1')))
+  await assertSucceeds(getDoc(doc(owner, 'commentDetails/c1')))
+  await assertSucceeds(getDocs(collection(admin, 'commentDetails')))
+
+  await assertSucceeds(setDoc(doc(owner, 'commentDetails/c2'), { uid: guest.sub, email: guest.email }))
+  await assertFails(setDoc(doc(owner, 'commentDetails/c3'), { uid: guest.sub, email: other.email }))
 })
 
 test('firestore state is reset between suites', async () => {
