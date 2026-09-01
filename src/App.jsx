@@ -186,9 +186,12 @@ export default function App() {
   }, [allowed, user, isAdmin])
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return
+    if (!isFirebaseConfigured || !allowed) {
+      setPublicComments([])
+      return
+    }
     return subscribeToComments(setPublicComments, (err) => setDataError(err.message))
-  }, [])
+  }, [allowed])
 
   useEffect(() => {
     if (!isFirebaseConfigured || !allowed) {
@@ -315,6 +318,7 @@ export default function App() {
         )}
 
         <Comments
+          allowed={allowed}
           user={allowed ? user : null}
           isAdmin={isAdmin}
           comments={comments}

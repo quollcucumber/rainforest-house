@@ -76,14 +76,15 @@ after(async () => {
   await env?.cleanup()
 })
 
-test('the calendar needs an allowed, confirmed account; comments are readable by anybody', async () => {
+test('the calendar and the comments need an allowed, confirmed account', async () => {
   const anon = env.unauthenticatedContext().firestore()
   const db = env.authenticatedContext(guest.sub, guest).firestore()
   await assertFails(getDocs(collection(anon, 'bookings')))
   await assertFails(getDocs(collection(anon, 'nights')))
   await assertSucceeds(getDocs(collection(db, 'bookings')))
   await assertSucceeds(getDocs(collection(db, 'nights')))
-  await assertSucceeds(getDocs(collection(anon, 'comments')))
+  await assertFails(getDocs(collection(anon, 'comments')))
+  await assertSucceeds(getDocs(collection(db, 'comments')))
 })
 
 test('only allowed addresses or domains may use the site, and only once confirmed', async () => {

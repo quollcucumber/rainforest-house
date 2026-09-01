@@ -10,7 +10,7 @@ function Stars({ rating }) {
   )
 }
 
-export default function Comments({ user, isAdmin, comments, bookings }) {
+export default function Comments({ allowed, user, isAdmin, comments, bookings }) {
   const myBookings = bookings.filter((booking) => booking.status !== 'cancelled')
 
   const [bookingId, setBookingId] = useState('')
@@ -39,6 +39,18 @@ export default function Comments({ user, isAdmin, comments, bookings }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (!allowed) {
+    return (
+      <section className="card" id="comments">
+        <h2>Comments on the state of the house</h2>
+        <p className="muted">
+          Guests write about how they found the house. <a href="#book">Create an account or sign in</a>{' '}
+          with an address the caretakers have allowed to read them and to add your own.
+        </p>
+      </section>
+    )
   }
 
   return (
