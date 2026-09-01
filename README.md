@@ -28,6 +28,20 @@ The caretaker accounts can manage every booking.
 The 21-night limit, the caretaker permissions and the no-overlap rule are enforced in
 `firestore.rules` as well as in the UI, so they hold even if somebody talks to Firestore directly.
 
+## Photographs
+
+`public/images/` holds three CC0 (public domain) photographs of the Daintree rainforest in far north
+Queensland, from Wikimedia Commons — cropped and re-compressed for the web:
+
+| file | source |
+| --- | --- |
+| `rainforest-hero.jpg` | [Daintree Rainforest 4](https://commons.wikimedia.org/wiki/File:Daintree_Rainforest_4.jpg) by Killerscene |
+| `rainforest-creek.jpg` | [Daintree Rainforest 2](https://commons.wikimedia.org/wiki/File:Daintree_Rainforest_2.jpg) by Killerscene |
+| `rainforest-understorey.jpg` | [Daintree Rainforest 3](https://commons.wikimedia.org/wiki/File:Daintree_Rainforest_3.jpg) by Killerscene |
+
+They show the surrounding rainforest, not the house — the page says so. Replace them with photographs
+of the house whenever there are some.
+
 ## Local development
 
 ```bash

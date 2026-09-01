@@ -14,10 +14,36 @@ import './App.css'
 function Hero() {
   return (
     <header className="hero">
-      <p className="eyebrow">Bookings</p>
-      <h1>Cow Bay airstrip nursery house</h1>
-      <p>A house in the rainforest, on a nursery. Check the calendar, then book your dates.</p>
+      <img src="/images/rainforest-hero.jpg" alt="Rainforest canopy in the Daintree, far north Queensland" />
+      <div className="hero-text">
+        <p className="eyebrow">Bookings</p>
+        <h1>Cow Bay airstrip nursery house</h1>
+        <p>A house in the rainforest, on a nursery. Check the calendar, then book your dates.</p>
+      </div>
     </header>
+  )
+}
+
+function Gallery() {
+  return (
+    <section className="card gallery">
+      <h2>The rainforest around Cow Bay</h2>
+      <div className="gallery-grid">
+        <figure>
+          <img src="/images/rainforest-creek.jpg" alt="A shallow creek running through dense Daintree rainforest" />
+        </figure>
+        <figure>
+          <img
+            src="/images/rainforest-understorey.jpg"
+            alt="Palms and slender trunks in the Daintree rainforest understorey"
+          />
+        </figure>
+      </div>
+      <p className="muted">
+        Photographs of the Daintree rainforest, far north Queensland — public domain (CC0) via Wikimedia
+        Commons. They show the surrounding rainforest, not the house itself.
+      </p>
+    </section>
   )
 }
 
@@ -96,6 +122,8 @@ export default function App() {
       <Hero />
 
       {dataError && <p className="error">{dataError}</p>}
+
+      <Gallery />
 
       <Calendar bookings={publicBookings} uid={user?.uid} />
 
