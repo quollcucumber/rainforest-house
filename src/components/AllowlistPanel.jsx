@@ -11,7 +11,7 @@ function List({ kind, entries, onRevoke }) {
       {entries.map((entry) => (
         <li key={entry.id}>
           <code>{kind === 'domain' ? `@${entry.id}` : entry.id}</code>
-          <button type="button" className="link danger" onClick={() => onRevoke(entry.id)}>
+          <button type="button" className="link" onClick={() => onRevoke(entry.id)}>
             Remove
           </button>
         </li>

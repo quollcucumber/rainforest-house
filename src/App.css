@@ -443,14 +443,30 @@ button.danger:hover:not(:disabled) {
 .allowlist li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
+  gap: 12px;
+  padding: 7px 8px 7px 14px;
   border-radius: 999px;
-  background: var(--leaf-light);
+  background: linear-gradient(160deg, var(--leaf), var(--leaf-deep));
+  color: #fff;
 }
 
 .allowlist code {
   font-size: 0.85rem;
+  color: #fff;
+}
+
+.allowlist button.link {
+  color: #fff;
+  opacity: 0.85;
+  padding: 2px 8px;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.allowlist button.link:hover:not(:disabled) {
+  color: #fff;
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .muted a {
