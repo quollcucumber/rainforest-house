@@ -27,7 +27,7 @@ function TopBar() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 22c0-6 1.6-9.8 4.6-12.4C13.2 10 10.8 12.2 9.6 15.3 8.3 13 8 10.4 8.8 7.6 5.7 9.8 4 12.7 4 16a8 8 0 0 0 6.9 5.9V22Zm2-11.6c1.7-3 4.4-5 6-5.4-.7 2.7-2.6 4.9-6 5.4Z" />
           </svg>
-          Cow Bay airstrip nursery house
+          Daintree house
         </span>
         <nav>
           <a href="#calendar">Availability</a>
@@ -45,7 +45,7 @@ function Hero() {
       <img src="/images/rainforest-hero.jpg" alt="Rainforest canopy in the Daintree, far north Queensland" />
       <div className="hero-text">
         <p className="eyebrow">Cow Bay · Daintree · far north Queensland</p>
-        <h1>Cow Bay airstrip nursery house</h1>
+        <h1>Daintree house</h1>
         <p className="hero-lede">
           A house in the rainforest, on a nursery. Check the calendar, then book your dates.
         </p>
@@ -66,7 +66,7 @@ function Footer() {
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">
-        <span>Cow Bay airstrip nursery house</span>
+        <span>Daintree house</span>
         <span>Stays longer than 3 weeks are arranged with the caretakers.</span>
       </div>
     </footer>
@@ -300,20 +300,17 @@ export default function App() {
               empty="You have no bookings yet."
             />
 
-            {isAdmin && (
-              <>
-                <BookingList
-                  title="All upcoming bookings (caretaker view)"
-                  items={upcoming}
-                  bookings={bookings}
-                  user={user}
-                  isAdmin={isAdmin}
-                  onLongStay={onLongStay}
-                  empty="Nothing booked yet."
-                />
-                <AllowlistPanel user={user} />
-              </>
-            )}
+            <BookingList
+              title={isAdmin ? 'All upcoming bookings (caretaker view)' : 'Upcoming stays'}
+              items={upcoming}
+              bookings={bookings}
+              user={user}
+              isAdmin={isAdmin}
+              onLongStay={onLongStay}
+              empty="Nothing booked yet."
+            />
+
+            {isAdmin && <AllowlistPanel user={user} />}
           </>
         )}
 

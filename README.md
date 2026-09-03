@@ -1,6 +1,6 @@
-# Cow Bay airstrip nursery house — booking site
+# Daintree house — booking site
 
-A small React + Firebase site for booking the Cow Bay airstrip nursery house. Guests create an
+A small React + Firebase site for booking the Daintree house. Guests create an
 account, book their dates, edit or cancel their own booking, and comment on the state of the house.
 The caretaker accounts can manage every booking.
 
@@ -17,7 +17,9 @@ The caretaker accounts can manage every booking.
 - **Calendar** — needs an allowed account: `bookings` and `nights` are readable only by those, and
   hold dates plus the booking name. Email addresses and notes live in `bookingDetails`, readable by
   the guest and the caretakers only, and shown in the UI to the caretakers.
-- **Booking** — pick arrival/departure dates and guest count; past dates are rejected.
+- **Booking** — pick arrival/departure dates and guest count; past dates are rejected. Every signed-in
+  allowed account sees an "Upcoming stays" list of who has the house and when, names only; the
+  caretakers see the same list with email addresses and can manage every row.
 - **No overlaps** — each booked night is a document in `nights` keyed by the date (`nights/2026-03-01`).
   The rules allow creating one but never overwriting one, so a booking is written in a batch that
   claims every night it needs and fails as a whole if any is held. Two bookings therefore cannot
